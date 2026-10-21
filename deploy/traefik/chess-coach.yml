@@ -1,0 +1,19 @@
+# Example Traefik dynamic configuration. Replace the hostname, certificate
+# resolver, and RFC 5737 documentation address before deployment.
+http:
+  routers:
+    chess-coach:
+      rule: "Host(`chess.example.com`)"
+      entryPoints: ["websecure"]
+      service: "chess-coach"
+      tls:
+        certResolver: your-resolver
+        domains:
+          - main: "example.com"
+            sans:
+              - "*.example.com"
+  services:
+    chess-coach:
+      loadBalancer:
+        servers:
+          - url: "http://192.0.2.10:9123"

@@ -1,0 +1,37 @@
+# Maia-3 CPU inference sidecar. The upstream source is pinned for repeatable builds.
+FROM python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258
+
+ARG MAIA3_REF=1e13597c42d4858b7cfd7cfdae01e297263364b2
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    HF_HOME=/models \
+    TORCH_HOME=/models \
+    OMP_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    MAIA_MODEL=maia3-5m \
+    MAIA_PORT=8001
+
+WORKDIR /app
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.8.0
+RUN python -m pip install "https://github.com/CSSLab/maia3/archive/${MAIA3_REF}.tar.gz" \
+ && mkdir -p /models
+
+# Checkpoint pinned to Hugging Face revision b6559de2398d7140b985f28fd2c19fb5e47ddabe.
+ADD --checksum=sha256:ba14208b2992d85502f5fb501934abf6aaaeb355e9f3fdf90e326911f562524f \
+    https://huggingface.co/UofTCSSLab/Maia3-5M/resolve/b6559de2398d7140b985f28fd2c19fb5e47ddabe/maia3-5m.pt \
+    /models/maia3-5m.pt
+
+COPY scripts/maia_service.py ./scripts/maia_service.py
+RUN groupadd --system --gid 10002 maia \
+ && useradd --system --uid 10002 --gid maia --home-dir /app --shell /usr/sbin/nologin maia \
+ && chown -R maia:maia /app /models
+
+USER maia
+EXPOSE 8001
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=3)"
+CMD ["python", "scripts/maia_service.py"]

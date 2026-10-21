@@ -1,0 +1,946 @@
+<title>Chess Coach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,650&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: tournament-vinyl board on the left, coach's scoresheet + conversation on the right; stacks on phones. */
+:root{
+  --bg:#f1f3ef; --surface:#ffffff; --ink:#1c2420; --muted:#5b6660; --line:#d5dbd3;
+  --accent:#2c6a4c; --accent-ink:#ffffff; --accent-soft:#e2eee6;
+  --sq-light:#ebe8d3; --sq-dark:#6e8f58; --sel:rgba(246,206,74,.72); --last:rgba(246,206,74,.38); --dot:rgba(20,30,24,.28); --check:rgba(214,58,46,.75);
+  --good:#2d7a4f; --warn:#b07a12; --bad:#c2452f; --great:#1f6fa8;
+  --f-display:"Newsreader", Georgia, "Times New Roman", serif;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --f-piece:"DejaVu Sans","Segoe UI Symbol","Noto Sans Symbols 2","Apple Symbols",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121614; --surface:#1a201d; --ink:#e4eae6; --muted:#98a49d; --line:#2c3531;
+  --accent:#6cbf92; --accent-ink:#0f1a14; --accent-soft:#1f3329;
+  --sq-light:#cfcbb3; --sq-dark:#5b7a48; --dot:rgba(10,16,12,.38);
+  --good:#62c08a; --warn:#e0a83a; --bad:#ef7a64; --great:#64aee3; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#121614; --surface:#1a201d; --ink:#e4eae6; --muted:#98a49d; --line:#2c3531;
+  --accent:#6cbf92; --accent-ink:#0f1a14; --accent-soft:#1f3329;
+  --sq-light:#cfcbb3; --sq-dark:#5b7a48; --dot:rgba(10,16,12,.38);
+  --good:#62c08a; --warn:#e0a83a; --bad:#ef7a64; --great:#64aee3; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);min-height:100vh;min-height:100dvh;padding-inline:max(16px,env(safe-area-inset-left)) max(16px,env(safe-area-inset-right));padding-block:max(20px,env(safe-area-inset-top)) max(40px,env(safe-area-inset-bottom));overflow-x:hidden}
+.wrap{width:100%;max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 16px}
+h1{font:650 clamp(28px,4vw,38px)/1.1 var(--f-display);margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0;max-width:60ch}
+.app{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.board-col{width:100%;max-width:680px;margin-inline:auto}
+@media (min-width:900px){
+  .app{grid-template-columns:minmax(0,1.08fr) minmax(340px,.92fr);gap:clamp(16px,2vw,24px)}
+  .board-col{max-width:none;margin-inline:0}
+}
+@media (min-width:1200px){.app{grid-template-columns:minmax(0,1fr) minmax(440px,1fr)}}
+
+/* Board */
+.board-frame{background:#3b4a35;padding:10px;border-radius:6px;box-shadow:0 1px 0 rgba(0,0,0,.08),0 8px 24px rgba(0,0,0,.12)}
+.board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));aspect-ratio:1;width:100%;max-width:100%;container-type:inline-size;user-select:none;-webkit-user-select:none}
+.sq{position:relative;border:0;padding:0;margin:0;display:grid;place-items:center;aspect-ratio:1;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;cursor:pointer;font:inherit;background:var(--sq-light)}
+.sq.dk{background:var(--sq-dark)}
+.sq:focus-visible{outline:3px solid var(--great);outline-offset:-3px;z-index:2}
+.sq.last::before,.sq.sel::before,.sq.check::before{content:"";position:absolute;inset:0;pointer-events:none}
+.sq.last::before{background:var(--last)}
+.sq.coach-last::before{background:color-mix(in srgb,var(--sel) 72%,transparent)}
+.sq.coach-last{box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--accent) 72%,transparent);z-index:1}
+.sq.coach-to{box-shadow:inset 0 0 0 5px var(--accent);z-index:2;overflow:visible}
+.sq.coach-to .pc{animation:coach-slide .7s cubic-bezier(.2,.72,.2,1) both;filter:drop-shadow(0 5px 3px rgba(0,0,0,.28))}
+.sq.sel::before{background:var(--sel)}
+.sq.check::before{background:radial-gradient(circle,var(--check) 0%,rgba(214,58,46,.35) 55%,transparent 75%)}
+.sq.tgt::after{content:"";position:absolute;width:30%;height:30%;border-radius:50%;background:var(--dot);pointer-events:none}
+.sq.tgt.cap::after{width:88%;height:88%;background:transparent;border:5px solid var(--dot)}
+.pc{position:relative;z-index:1;font-family:var(--f-piece);font-size:56px;font-size:clamp(30px,9.6cqi,72px);line-height:1;pointer-events:auto}
+.pc.w{color:#fbfbf7;text-shadow:0 0 1px #111,0 0 1px #111,1px 1px 0 #111,-1px -1px 0 #111,1px -1px 0 #111,-1px 1px 0 #111}
+.pc.b{color:#161616;text-shadow:0 0 2px rgba(255,255,255,.35)}
+.co{position:absolute;font:500 clamp(9px,2cqi,12px)/1 var(--f-mono);pointer-events:none;opacity:.85}
+.co.f{right:3px;bottom:3px}.co.r{left:3px;top:3px}
+.sq .co{color:var(--sq-dark)} .sq.dk .co{color:var(--sq-light)}
+
+.statusbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.status{font-weight:600}
+.status .dotlive{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:8px;vertical-align:1px}
+.status.thinking .dotlive{animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.25}}
+@keyframes coach-slide{0%{transform:translate(calc(var(--coach-dx) * 12.5cqi),calc(var(--coach-dy) * 12.5cqi))}85%{transform:translate(0,0)}100%{transform:translate(0,0);filter:none}}
+@media (prefers-reduced-motion:reduce){.status.thinking .dotlive,.sq.coach-to .pc{animation:none}}
+.coach-notice{margin:0;padding:10px 13px;border:1px solid color-mix(in srgb,var(--accent) 55%,var(--line));border-radius:7px;background:var(--accent-soft);color:var(--ink);font-weight:600}
+.coach-notice .move{font-family:var(--f-mono);color:var(--accent)}
+
+/* Controls */
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button.btn{font:500 14px/1 var(--f-body);padding:9px 13px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+button.btn:hover:not(:disabled){border-color:var(--accent)}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+button.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.btn:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+label.fld{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+select,textarea{font:14px var(--f-body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tab{font:600 14px var(--f-body);padding:10px 14px;border:0;background:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel h2{font:650 19px/1.2 var(--f-display);margin:0}
+.eyebrow{font:600 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* Scoresheet */
+.sheet{font:14px/1.6 var(--f-mono);font-variant-numeric:tabular-nums;display:grid;grid-template-columns:2.6em 1fr 1fr;column-gap:8px;max-height:150px;overflow:auto;padding-right:4px}
+.sheet .n{color:var(--muted);text-align:right}
+.sheet .empty{grid-column:1/-1;color:var(--muted);font-family:var(--f-body)}
+
+/* Coach log */
+.log{display:flex;flex-direction:column;gap:10px;max-height:420px;overflow:auto;padding-right:4px}
+.msg{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:8px;background:var(--bg);min-width:0}
+.msg.you{background:transparent;border:1px dashed var(--line)}
+.msg.sys{background:transparent;padding:2px 2px;color:var(--muted);font-size:13px}
+.msg .who{display:flex;align-items:center;gap:8px;font:600 12px var(--f-body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.msg .body{white-space:pre-wrap;overflow-wrap:anywhere}
+.msg .san{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+.chip{font:600 11px var(--f-body);letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid currentColor}
+.chip.great{color:var(--great)}.chip.good{color:var(--good)}.chip.inaccuracy{color:var(--warn)}.chip.mistake{color:var(--bad)}.chip.blunder{color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.ask{display:flex;gap:8px;align-items:flex-end}
+.ask textarea{flex:1;min-width:0;resize:vertical;min-height:42px}
+
+/* Lessons */
+.lesson-summary{display:grid;grid-template-columns:1fr auto;gap:10px 14px;align-items:center}
+.lesson-summary .eyebrow{grid-column:1/-1}
+.progress-track{height:7px;border-radius:99px;background:var(--bg);overflow:hidden}
+.progress-fill{height:100%;width:0;background:var(--accent);border-radius:inherit;transition:width .2s ease}
+.lesson-filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.lesson-filter{white-space:nowrap;font:500 13px var(--f-body);padding:7px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer}
+.lesson-filter[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
+.lessons{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:8px;max-height:390px;overflow:auto;padding-right:3px}
+.lesson{text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;font:inherit}
+.lesson:hover{border-color:var(--accent)}
+.lesson[aria-current="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.lesson .meta{display:flex;align-items:center;justify-content:space-between;gap:6px;color:var(--muted);font:500 11px var(--f-body);text-transform:uppercase;letter-spacing:.04em}
+.lesson .t{font-weight:600}
+.lesson .c{font-size:12px;color:var(--muted)}
+.lesson .done{color:var(--good);font-size:12px;font-weight:600}
+.task{font:500 17px/1.4 var(--f-display)}
+.note{font-size:13px;color:var(--muted)}
+.plan{border-color:color-mix(in srgb,var(--accent) 45%,var(--line));background:var(--accent-soft)}
+.planlist{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:6px}
+.planlist li{padding-left:2px}
+.planlist li::marker{font:600 13px var(--f-mono);color:var(--accent)}
+.copybox{font:12px/1.5 var(--f-mono);white-space:pre-wrap;overflow-wrap:anywhere;background:var(--bg);padding:8px;border-radius:6px;user-select:all}
+@media (min-width:700px) and (max-width:899px){
+  body{padding-inline:max(24px,env(safe-area-inset-left)) max(24px,env(safe-area-inset-right))}
+  .panel{padding:16px}
+  .lessons{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (min-width:900px) and (max-width:1100px){
+  body{padding-inline:max(18px,env(safe-area-inset-left)) max(18px,env(safe-area-inset-right));padding-top:max(16px,env(safe-area-inset-top))}
+  .wrap{gap:14px}
+  .panel{padding:12px;gap:10px}
+  .lessons{grid-template-columns:repeat(2,minmax(0,1fr));max-height:360px}
+  .log{max-height:340px}
+}
+@media (pointer:coarse){
+  button.btn,.tab,.lesson-filter{min-height:44px}
+  select,textarea{min-height:44px;font-size:16px}
+  .lesson{min-height:76px}
+  .lesson-filters{overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch}
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Chess Coach</h1>
+      <p class="sub">Play a teaching game with live coaching, or work through short lessons on the patterns that win games.</p>
+    </div>
+  </header>
+
+  <div class="app">
+    <div class="col board-col">
+      <div class="statusbar">
+        <div id="status" class="status" aria-live="polite"><span class="dotlive"></span><span id="statusText">Your move</span></div>
+        <div class="row">
+          <button class="btn" id="stopBtn" hidden>Stop thinking</button>
+          <button class="btn" id="coachMoveBtn" hidden>Coach's move</button>
+        </div>
+      </div>
+      <p class="coach-notice" id="coachNotice" role="status" aria-live="assertive" hidden></p>
+      <div class="board-frame"><div class="board" id="board" role="grid" aria-label="Chessboard"></div></div>
+      <p class="note">Click a piece, then a highlighted square. You can also drag pieces on a computer. Pawns promote to a queen.</p>
+      <div class="panel plan" id="planPanel">
+        <div class="row" style="justify-content:space-between">
+          <span class="eyebrow">Your plan for the next few moves</span>
+          <span class="note" id="planSource"></span>
+        </div>
+        <ol class="planlist" id="planList"></ol>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tabPlay" aria-selected="true">Play the coach</button>
+        <button class="tab" role="tab" id="tabLessons" aria-selected="false">Lessons</button>
+      </div>
+
+      <section id="playPanel" class="col">
+        <div class="panel">
+          <div class="row" style="align-items:flex-end">
+            <label class="fld" for="colorSel">You play
+              <select id="colorSel"><option value="w">White</option><option value="b">Black</option></select>
+            </label>
+            <label class="fld" for="levelSel">Coach strength
+              <select id="levelSel">
+                <option value="beginner">Beginner · more forgiving</option>
+                <option value="improving">Improving · mostly strong</option>
+                <option value="club">Club · strongest play</option>
+              </select>
+            </label>
+            <label class="fld" for="engineSel">Chess engine
+              <select id="engineSel">
+                <option value="stockfish">Stockfish · calculated</option>
+                <option value="maia">Maia 3 · human-like</option>
+              </select>
+            </label>
+            <label class="fld" for="tierSel">Coach mode
+              <select id="tierSel"><option value="quick">Fast</option><option value="default">Thorough</option><option value="deep">Deep review</option></select>
+            </label>
+            <label class="fld" for="oddsSel">Coach handicap
+              <select id="oddsSel">
+                <option value="none">None (even game)</option>
+                <option value="pawn">Pawn odds (no f-pawn)</option>
+                <option value="knight">Knight odds</option>
+                <option value="rook">Rook odds</option>
+                <option value="rookknight">Rook + knight odds</option>
+                <option value="queen">Queen odds</option>
+              </select>
+            </label>
+            <button class="btn primary" id="newBtn">New game</button>
+          </div>
+          <div class="row">
+            <button class="btn" id="undoBtn">Take back</button>
+            <button class="btn" id="hintBtn">Hint</button>
+            <button class="btn" id="reviewBtn">Review my game</button>
+            <button class="btn" id="pgnBtn">Copy PGN</button>
+          </div>
+          <div id="pgnOut" class="copybox" hidden></div>
+        </div>
+        <div class="panel">
+          <span class="eyebrow">Scoresheet</span>
+          <div class="sheet" id="sheet"></div>
+        </div>
+      </section>
+
+      <section id="lessonPanel" class="col" hidden>
+        <div class="panel">
+          <div class="lesson-summary">
+            <span class="eyebrow">Your learning path</span>
+            <strong id="lessonProgress">0 lessons solved</strong>
+            <span class="note" id="lessonProgressPct">0%</span>
+            <div class="progress-track" style="grid-column:1/-1" role="progressbar" aria-label="Lesson progress" aria-valuemin="0" aria-valuemax="24" aria-valuenow="0"><div class="progress-fill" id="lessonProgressBar"></div></div>
+          </div>
+          <div class="lesson-filters" id="lessonFilters" aria-label="Filter lessons"></div>
+          <div class="lessons" id="lessonList"></div>
+        </div>
+        <div class="panel" id="lessonCard">
+          <span class="eyebrow" id="lessonConcept"></span>
+          <h2 id="lessonTitle"></h2>
+          <p class="task" id="lessonTask" style="margin:0"></p>
+          <div class="row">
+            <button class="btn" id="lHint">Hint</button>
+            <button class="btn" id="lReveal">Show answer</button>
+            <button class="btn" id="lReset">Reset position</button>
+            <button class="btn primary" id="lNext">Next lesson</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="panel">
+        <div class="row" style="justify-content:space-between">
+          <span class="eyebrow">Coach</span>
+          <span class="note" id="coachAvail"></span>
+        </div>
+        <div class="log" id="log" aria-live="polite"></div>
+        <form class="ask" id="askForm">
+          <textarea id="askInput" rows="2" placeholder="Ask about this position, e.g. “Why is castling early good?”"></textarea>
+          <button class="btn primary" id="askBtn" type="submit">Ask</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.js"></script>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const FILES='abcdefgh';
+const GLYPH={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
+const VS='︎';
+const VAL={p:1,n:3,b:3,r:5,q:9,k:0};
+const LEVELS={
+  beginner:'new to chess. Use very simple language, name the basic principle involved (control the center, develop pieces, castle, don\'t leave pieces undefended), and avoid jargon',
+  improving:'an improving player around 800-1400 rating who knows basic tactics. Point out concrete tactics, threats and plans',
+  club:'a club player around 1400-1800. Be concrete about plans, pawn structure, piece activity and tactical details'
+};
+const LESSONS=[
+ {id:'backrank',unit:'Checkmates',difficulty:1,title:'Back-rank mate',concept:'Checkmate pattern',fen:'6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1',sol:'Rd8#',
+  task:'Black’s king is walled in by its own pawns. Find checkmate in one move.',
+  hint:'Look along Black’s back rank, the 8th row.',
+  explain:'Rd8# is checkmate. The pawns on f7, g7 and h7 take away every escape square. To protect your own king from this, give it an escape square (“luft”) with a pawn move like h3 once the position is quiet.'},
+ {id:'fork',unit:'Tactics',difficulty:1,title:'Knight fork',concept:'Double attack',fen:'r3k3/8/8/1N6/8/8/8/4K3 w - - 0 1',sol:'Nc7+',
+  task:'Win material with a single knight move.',
+  hint:'Knights can attack two pieces at once. Which square hits both the king and the rook?',
+  explain:'Nc7+ checks the king and attacks the rook on a8 at the same time. The king has to move, then Nxa8 wins the rook. Look for forks whenever enemy pieces sit a knight’s jump from the same square.'},
+ {id:'scholar',unit:'Checkmates',difficulty:1,title:'Scholar’s mate',concept:'Opening trap',fen:'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4',sol:'Qxf7#',
+  task:'Black just played 3…Nf6?? and missed a threat. Punish it.',
+  hint:'At the start of the game, f7 is defended only by Black’s king.',
+  explain:'Qxf7# is checkmate. The queen is protected by the bishop on c4, so the king can’t take it. When you’re Black and the queen comes to h5 early, defend f7 with …g6 or …Qe7 before developing the knight.'},
+ {id:'skewer',unit:'Tactics',difficulty:2,title:'Skewer',concept:'Line attack',fen:'4q3/8/8/4k3/8/8/8/R6K w - - 0 1',sol:'Re1+',
+  task:'Win Black’s queen.',
+  hint:'Give check along a line that has the queen hiding behind the king.',
+  explain:'Re1+ checks along the e-file. The king must step off the file, and then Rxe8 takes the queen. A skewer is a pin in reverse: the more valuable piece is in front and has to move out of the way.'},
+ {id:'smother',unit:'Checkmates',difficulty:2,title:'Smothered mate',concept:'Checkmate pattern',fen:'6rk/6pp/8/6N1/8/8/8/6K1 w - - 0 1',sol:'Nf7#',
+  task:'Checkmate in one with the knight.',
+  hint:'The king is surrounded by its own pieces. Which check can’t be blocked?',
+  explain:'Nf7# is checkmate. The rook and pawns take away every escape square, and a knight check can never be blocked. Watch for this when the enemy king is cramped in a corner.'},
+ {id:'discovered',unit:'Tactics',difficulty:2,title:'Discovered check',concept:'Hidden attacker',fen:'4k3/8/8/8/4B3/8/q7/4R1K1 w - - 0 1',sol:'Bd5+',
+  task:'Win Black’s queen with a discovered check.',
+  hint:'Moving the bishop off the e-file uncovers the rook. Where can the bishop also attack something?',
+  explain:'Bd5+ uncovers check from the rook on e1 and attacks the queen on a2. Black has to deal with the check, then Bxa2 wins the queen. If Black blocks with …Qe2, Rxe2+ takes it instead.'},
+ {id:'claim-center',unit:'Foundations',difficulty:1,title:'Claim the center',concept:'Opening principle',fen:'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',sol:'e4',task:'Start the game by placing a pawn in the center.',hint:'Move the pawn in front of your king two squares.',explain:'e4 takes space, controls d5 and f5, and opens lines for your queen and bishop. Strong opening moves often do more than one useful job.'},
+ {id:'develop-knight',unit:'Foundations',difficulty:1,title:'Develop with purpose',concept:'Opening principle',fen:'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2',sol:'Nf3',task:'Develop a piece and attack Black’s center pawn.',hint:'Knights usually belong near the center, not on the edge.',explain:'Nf3 develops the knight toward the center, attacks e5, and prepares castling. In the opening, look for moves that develop while creating a threat.'},
+ {id:'castle-early',unit:'Foundations',difficulty:1,title:'Castle to safety',concept:'King safety',fen:'rnbq1rk1/ppppbppp/5n2/4p3/4P3/2NP1N2/PPP2PPP/R1BQK2R w KQ - 5 6',sol:'O-O',task:'Put your king somewhere safer and activate a rook in one move.',hint:'The squares between your king and h1 rook are clear.',explain:'O-O tucks the king behind pawns and brings the rook toward the center. Castling early is usually the simplest way to finish your basic opening setup.'},
+ {id:'connect-rooks',unit:'Foundations',difficulty:1,title:'Connect the rooks',concept:'Finish development',fen:'r1bq1rk1/pppp1ppp/2n2n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 w - - 6 7',sol:'Be3',task:'Develop White’s last minor piece so the rooks can soon work together.',hint:'The bishop on c1 needs an active square.',explain:'Be3 develops the final minor piece and clears the back rank. Once the queen moves, the rooks will be connected and can support each other.'},
+ {id:'absolute-pin',unit:'Tactics',difficulty:1,title:'Pin the knight',concept:'Absolute pin',fen:'r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3',sol:'Bb5',task:'Develop the bishop and pin Black’s knight to its king.',hint:'A bishop can line up the knight on c6 with the king on e8.',explain:'Bb5 pins the c6-knight to the king. The knight cannot move while that would expose the king to check. Pins can make a defender temporarily useless.'},
+ {id:'pawn-fork',unit:'Tactics',difficulty:1,title:'Pawn fork',concept:'Double attack',fen:'4k3/8/8/2n1n3/8/3P4/8/4K3 w - - 0 1',sol:'d4',task:'Use the least valuable piece to attack both knights.',hint:'A pawn on d4 attacks c5 and e5.',explain:'d4 forks both knights. Pawn forks are easy to overlook because pawns move and attack in different directions.'},
+ {id:'win-loose-queen',unit:'Tactics',difficulty:1,title:'Take the loose piece',concept:'Board awareness',fen:'4k3/8/8/3q4/8/8/3R4/4K3 w - - 0 1',sol:'Rxd5',task:'Black’s queen is undefended. Win it immediately.',hint:'Before calculating anything fancy, scan every enemy piece for a free capture.',explain:'Rxd5 simply takes the hanging queen. The most important tactical habit is checking captures, checks, and threats on every move.'},
+ {id:'remove-defender',unit:'Tactics',difficulty:2,title:'Remove the defender',concept:'Deflection',fen:'6k1/5ppp/8/8/2B5/8/5PPP/3Q2K1 w - - 0 1',sol:'Bxf7+',task:'Pull Black’s king away from the defense of its position with check.',hint:'The bishop can capture on f7 with tempo.',explain:'Bxf7+ forces the king to respond and disrupts the shelter around it. A forcing capture can remove or deflect a key defender before the main attack.'},
+ {id:'supported-queen-mate',unit:'Checkmates',difficulty:1,title:'Supported queen mate',concept:'Checkmate pattern',fen:'7k/6pp/5Q2/8/8/2B5/8/4K3 w - - 0 1',sol:'Qxg7#',task:'Deliver mate with a queen protected by a distant bishop.',hint:'The bishop on c3 protects a capture next to the king.',explain:'Qxg7# works because the bishop on c3 protects the queen. The queen covers every escape square while the king cannot capture the mating piece.'},
+ {id:'rook-box-mate',unit:'Checkmates',difficulty:2,title:'Rook and king mate',concept:'Endgame checkmate',fen:'7k/5K2/8/8/8/8/8/R7 w - - 0 1',sol:'Rh1#',task:'Use the rook to finish the boxed-in king.',hint:'Your king covers g8 and g7. Check along the h-file.',explain:'Rh1# checks up the h-file. White’s king takes away g8 and g7, demonstrating how king and rook cooperate to make a mating net.'},
+ {id:'arabian-mate',unit:'Checkmates',difficulty:2,title:'Arabian mate',concept:'Rook and knight pattern',fen:'7k/8/5N2/8/8/8/8/6RK w - - 0 1',sol:'Rg8#',task:'Combine rook and knight to checkmate the cornered king.',hint:'The knight protects g8 and covers h7.',explain:'Rg8# is the Arabian mate. The rook checks and covers the back rank while the knight protects the rook and removes the king’s only escape square.'},
+ {id:'opposition',unit:'Endgames',difficulty:2,title:'Take the opposition',concept:'King and pawn ending',fen:'8/8/8/4k3/8/4K3/8/8 w - - 0 1',sol:'Kd3',task:'Step into distant opposition and make it harder for Black’s king to advance.',hint:'Keep the kings facing each other with an odd number of squares between them.',explain:'Kd3 establishes distant opposition and restricts Black’s approach. Opposition helps your king control entry squares in pawn endings.'},
+ {id:'catch-pawn',unit:'Endgames',difficulty:1,title:'Enter the square',concept:'Pawn race',fen:'8/8/8/8/5K1p/8/8/7k w - - 0 1',sol:'Kg4',task:'Move into the imaginary square that lets your king catch the h-pawn.',hint:'Head directly toward the pawn rather than chasing from behind.',explain:'Kg4 enters the pawn’s square, so the king can catch it even if Black pushes immediately. Visualizing the square is a fast way to judge pawn races.'},
+ {id:'rook-behind-pawn',unit:'Endgames',difficulty:1,title:'Rook behind the pawn',concept:'Rook ending principle',fen:'6k1/8/4P3/8/8/8/8/R5K1 w - - 0 1',sol:'Re1',task:'Place the rook where it can support the passed pawn as it advances.',hint:'Rooks are strongest behind passed pawns.',explain:'Re1 puts the rook behind the e-pawn, where its support grows as the pawn advances. This is a core rule for both supporting your passer and stopping an enemy passer.'},
+ {id:'promote-check',unit:'Endgames',difficulty:1,title:'Promote with tempo',concept:'Pawn promotion',fen:'8/5KPk/8/8/8/8/8/8 w - - 0 1',sol:'g8=Q+',task:'Create a new queen and force the enemy king to respond.',hint:'Advance the pawn to the last rank.',explain:'g8=Q+ promotes with check, gaining time because Black must answer the check before doing anything else. Look for promotions that come with tempo.'},
+ {id:'key-square',unit:'Endgames',difficulty:3,title:'Reach a key square',concept:'King and pawn ending',fen:'8/4k3/8/3KP3/8/8/8/8 w - - 0 1',sol:'Kc6',task:'Move the king to a key square that helps the e-pawn advance.',hint:'Get in front of the pawn while keeping the enemy king out.',explain:'Kc6 reaches a key square and outflanks Black’s king. In king-and-pawn endings, the king usually belongs in front of its pawn, clearing the path forward.'},
+ {id:'make-luft',unit:'Defense',difficulty:1,title:'Make an escape square',concept:'Preventive defense',fen:'3r2k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1',sol:'h3',task:'Prevent a future back-rank problem before it becomes urgent.',hint:'Give your king a safe square on h2.',explain:'h3 creates “luft,” an escape square for the king. A small pawn move can remove back-rank mating threats before you activate the rook.'},
+ {id:'block-check',unit:'Defense',difficulty:1,title:'Block the check',concept:'Responding to check',fen:'4r1k1/8/8/8/8/8/3B4/4K3 w - - 0 1',sol:'Be3',task:'Save the king by interposing the bishop on the e-file.',hint:'A sliding-piece check can be blocked by placing a piece between attacker and king.',explain:'Be3 blocks the rook’s line to the king. Against check, always consider all three responses: capture the attacker, move the king, or block the line.'}
+];
+
+let game=new Chess();
+let mode='play', player='w', level='beginner', tier='default', opponentEngine='stockfish';
+let sel=null, last=null, busy=false, ctl=null;
+let lastByCoach=false, coachAnimating=false, coachNotice=null, coachRevealTimer=null;
+let lessonIdx=0, lessonFilter='All', solved=new Set();
+let logItems=[];
+let sample=null, analyzer=null, sampleState='checking', coachSource='local';
+let plan=null; // {items:[...], src:'coach', ply:n} — valid while game.history().length===ply
+let odds='none', gameOdds='none'; // odds = selected for next game; gameOdds = what the current game was started with
+
+/* ---------- handicap (material odds given by the coach) ---------- */
+const ODDS={
+  none:{label:'no handicap',remove:[],desc:''},
+  pawn:{label:'pawn odds',remove:['f'],desc:'its f-pawn'},
+  knight:{label:'knight odds',remove:['b'],desc:'its queenside knight'},
+  rook:{label:'rook odds',remove:['a'],desc:'its queenside rook'},
+  rookknight:{label:'rook + knight odds',remove:['a','b'],desc:'its queenside rook and knight'},
+  queen:{label:'queen odds',remove:['d'],desc:'its queen'}
+};
+function startFen(key,coach){
+  // remove pieces from the coach's side of the standard position
+  const rows=[['r','n','b','q','k','b','n','r'],Array(8).fill('p'),[],[],[],[],Array(8).fill('P'),['R','N','B','Q','K','B','N','R']];
+  for(let i=2;i<6;i++)rows[i]=Array(8).fill('');
+  const backIdx=coach==='b'?0:7, pawnIdx=coach==='b'?1:6;
+  let castle='KQkq';
+  for(const f of ODDS[key].remove){
+    const c=FILES.indexOf(f);
+    if(key==='pawn')rows[pawnIdx][c]=''; else rows[backIdx][c]='';
+    if(f==='a')castle=castle.replace(coach==='b'?'q':'Q','');
+  }
+  const fenRows=rows.map(r=>{let s='',e=0;for(const x of r){if(!x){e++}else{if(e){s+=e;e=0}s+=x}}if(e)s+=e;return s});
+  return fenRows.join('/')+' w '+(castle||'-')+' - 0 1';
+}
+function oddsLine(){return gameOdds==='none'?'':'This is a handicap game: you, the coach, started without '+ODDS[gameOdds].desc+' to give the student a material head start. Keep playing sound, purposeful moves to win that material back, and when it helps, point out how the student can use their extra material (trade pieces, attack where you are weak, push toward an endgame).'}
+
+/* ---------- plan for the next few moves ---------- */
+const NAMES={k:'king',q:'queen',r:'rook',b:'bishop',n:'knight',p:'pawn'};
+function attackedBy(color){
+  // squares the given side attacks, approximated by its capture moves on a copy where it is to move
+  const parts=game.fen().split(' '); parts[1]=color; parts[3]='-';
+  const g=new Chess(); if(!g.load(parts.join(' ')))return new Set();
+  return new Set(g.moves({verbose:true}).filter(m=>m.captured).map(m=>m.to));
+}
+function basicPlan(){
+  const me=player, opp=me==='w'?'b':'w', items=[];
+  if(game.in_check()) items.push('You’re in check: move the king, block, or capture the checking piece.');
+  const hit=attackedBy(opp); let worst=null;
+  for(const sq of hit){const p=game.get(sq);if(p&&p.color===me&&p.type!=='k'&&(!worst||VAL[p.type]>VAL[worst.p.type]))worst={sq,p}}
+  if(worst) items.push('Your '+NAMES[worst.p.type]+' on '+worst.sq+' is under attack. Move it, defend it, or trade it off.');
+  const ply=game.history().length;
+  if(ply<24){
+    const home=me==='w'?{b1:'n',g1:'n',c1:'b',f1:'b'}:{b8:'n',g8:'n',c8:'b',f8:'b'};
+    const undeveloped=Object.entries(home).filter(([sq,t])=>{const p=game.get(sq);return p&&p.color===me&&p.type===t}).map(([sq])=>sq);
+    if(undeveloped.length) items.push('Develop your remaining '+(undeveloped.length>1?'minor pieces':'piece')+' ('+undeveloped.join(', ')+') toward the center.');
+    const kHome=me==='w'?'e1':'e8', k=game.get(kHome);
+    if(k&&k.type==='k'&&k.color===me) items.push('Get your king safe by castling, usually on the kingside.');
+    const c=['d4','e4','d5','e5'].filter(s=>{const p=game.get(s);return p&&p.color===me});
+    if(!c.length) items.push('Claim the center with a pawn on d4/e4 (or d5/e5 as Black).');
+  }else{
+    items.push('Before each move, check what your opponent is threatening.');
+    items.push('Find your least active piece and give it a better square.');
+    items.push('Put your rooks on open files where they can reach the 7th rank.');
+  }
+  return items.slice(0,3);
+}
+function renderPlan(){
+  const panel=$('planPanel');
+  panel.hidden=mode!=='play';
+  if(panel.hidden)return;
+  const list=$('planList'); list.textContent='';
+  let items, src;
+  if(game.game_over()){items=['The game is over. Tap “Review my game” to see the key moments.'];src=''}
+  else if(game.turn()!==player){items=plan&&plan.ply===game.history().length+1?plan.items:['Wait for the coach’s reply. Your plan will update after it moves.'];src=busy?'Updating…':''}
+  else if(plan&&plan.ply===game.history().length){items=plan.items;src='From the coach'}
+  else{items=basicPlan();src=sample?'General principles':'General principles (coach offline)'}
+  for(const t of items){const li=document.createElement('li');li.textContent=t;list.append(li)}
+  $('planSource').textContent=src;
+}
+
+/* ---------- persistence (per-viewer convenience) ---------- */
+function save(){try{localStorage.setItem('chesscoach.v1',JSON.stringify({pgn:mode==='play'?game.pgn():(savedPlay&&savedPlay.pgn)||'',player,level,tier,opponentEngine,odds,gameOdds,solved:[...solved],plan}))}catch(e){}}
+function restore(){
+  try{
+    const s=JSON.parse(localStorage.getItem('chesscoach.v1')||'null'); if(!s) return false;
+    player=s.player||'w'; level=s.level||'beginner'; tier=s.tier||'default'; opponentEngine=s.opponentEngine==='maia'?'maia':'stockfish'; solved=new Set(s.solved||[]); odds=ODDS[s.odds]?s.odds:'none'; gameOdds=ODDS[s.gameOdds]?s.gameOdds:'none'; plan=s.plan&&Array.isArray(s.plan.items)?s.plan:null;
+    if(s.pgn){const g=new Chess(); if(g.load_pgn(s.pgn)){game=g; const h=game.history({verbose:true}); const m=h[h.length-1]; if(m){last={from:m.from,to:m.to};lastByCoach=m.color!==player}}}
+    return game.history().length>0;
+  }catch(e){return false}
+}
+
+/* ---------- coach log ---------- */
+function addLog(kind,opts){const item=Object.assign({kind},opts);logItems.push(item);if(logItems.length>60)logItems.shift();renderLog();return item}
+function renderLog(){
+  const el=$('log'); el.textContent='';
+  for(const it of logItems){
+    const d=document.createElement('div'); d.className='msg '+(it.kind==='coach'?'':it.kind);
+    if(it.kind!=='sys'){
+      const who=document.createElement('div'); who.className='who';
+      who.append(it.kind==='you'?'You':'Coach');
+      if(it.tag){const c=document.createElement('span');c.className='chip '+it.tag;c.textContent=it.tag;who.append(c)}
+      d.append(who);
+    }
+    const b=document.createElement('div'); b.className='body';
+    if(it.san){const s=document.createElement('span');s.className='san';s.textContent=it.san+'  ';b.append(s)}
+    b.append(it.text||''); d.append(b); el.append(d);
+  }
+  el.scrollTop=el.scrollHeight;
+}
+
+/* ---------- board ---------- */
+function orientation(){return mode==='lesson'?'w':player}
+function boardPoint(sq){
+  const flip=orientation()==='b',file=FILES.indexOf(sq[0]),rank=Number(sq[1]);
+  return {x:flip?7-file:file,y:flip?rank-1:8-rank};
+}
+function renderBoard(){
+  const el=$('board'); el.textContent='';
+  const flip=orientation()==='b';
+  const targets=new Map();
+  if(sel){for(const m of game.moves({square:sel,verbose:true}))targets.set(m.to,!!m.captured)}
+  let checkSq=null;
+  if(game.in_check()){const t=game.turn();for(let r=1;r<=8;r++)for(const f of FILES){const p=game.get(f+r);if(p&&p.type==='k'&&p.color===t)checkSq=f+r}}
+  for(let i=0;i<8;i++){
+    const rank=flip?i+1:8-i;
+    for(let j=0;j<8;j++){
+      const fi=flip?7-j:j, sq=FILES[fi]+rank;
+      const b=document.createElement('button'); b.type='button';
+      b.className='sq'+((fi+rank)%2===1?' dk':'');
+      if(last&&(last.from===sq||last.to===sq)){b.classList.add('last');if(lastByCoach)b.classList.add('coach-last')}
+      if(coachAnimating&&lastByCoach&&last&&last.to===sq)b.classList.add('coach-to');
+      if(sel===sq)b.classList.add('sel');
+      if(targets.has(sq)){b.classList.add('tgt');if(targets.get(sq))b.classList.add('cap')}
+      if(checkSq===sq)b.classList.add('check');
+      b.dataset.sq=sq;
+      const p=game.get(sq);
+      b.setAttribute('aria-label',sq+(p?' '+(p.color==='w'?'white ':'black ')+({k:'king',q:'queen',r:'rook',b:'bishop',n:'knight',p:'pawn'})[p.type]:''));
+      if(p){
+        const s=document.createElement('span');s.className='pc '+p.color;s.textContent=GLYPH[p.type]+VS;s.draggable=true;s.dataset.sq=sq;
+        if(coachAnimating&&lastByCoach&&last&&last.to===sq){const a=boardPoint(last.from),z=boardPoint(last.to);s.style.setProperty('--coach-dx',a.x-z.x);s.style.setProperty('--coach-dy',a.y-z.y)}
+        b.append(s);
+      }
+      if(i===7){const c=document.createElement('span');c.className='co f';c.textContent=FILES[fi];b.append(c)}
+      if(j===0){const c=document.createElement('span');c.className='co r';c.textContent=rank;b.append(c)}
+      el.append(b);
+    }
+  }
+}
+function renderSheet(){
+  const el=$('sheet'); el.textContent='';
+  const h=game.history();
+  if(!h.length){const e=document.createElement('div');e.className='empty';e.textContent='No moves yet.';el.append(e);return}
+  for(let i=0;i<h.length;i+=2){
+    const n=document.createElement('div');n.className='n';n.textContent=(i/2+1)+'.';
+    const a=document.createElement('div');a.textContent=h[i];
+    const b=document.createElement('div');b.textContent=h[i+1]||'';
+    el.append(n,a,b);
+  }
+  el.scrollTop=el.scrollHeight;
+}
+function statusText(){
+  if(coachAnimating&&coachNotice) return 'Coach played '+coachNotice;
+  if(busy) return 'Coach is thinking…';
+  if(game.in_checkmate()){const loser=game.turn();if(mode==='lesson')return 'Checkmate!';return loser===player?'Checkmate. The coach wins this one.':'Checkmate. You win!'}
+  if(game.in_stalemate()) return 'Stalemate. The game is a draw.';
+  if(game.in_threefold_repetition()) return 'Draw by repetition.';
+  if(game.insufficient_material()) return 'Draw: not enough material to checkmate.';
+  if(game.in_draw()) return 'Draw.';
+  if(mode==='lesson') return LESSONS[lessonIdx].solvedNow?'Solved. Try the next lesson.':'Your move (White)';
+  const you=player==='w'?'White':'Black';
+  if(game.turn()===player) return (game.in_check()?'Check! ':'')+'Your move ('+you+')';
+  return 'Coach to move';
+}
+function render(){
+  renderBoard(); renderSheet();
+  $('statusText').textContent=statusText();
+  $('status').classList.toggle('thinking',busy&&!coachAnimating);
+  const notice=$('coachNotice');notice.hidden=!coachNotice;notice.textContent='';
+  if(coachNotice){notice.append('Coach played ');const move=document.createElement('span');move.className='move';move.textContent=coachNotice;notice.append(move,'. Your turn.')}
+  $('stopBtn').hidden=!busy||coachAnimating;
+  const coachTurn=mode==='play'&&!busy&&!game.game_over()&&game.turn()!==player;
+  $('coachMoveBtn').hidden=!coachTurn;
+  $('undoBtn').disabled=game.history().length===0||mode!=='play';
+  $('reviewBtn').disabled=busy||game.history().length<2;
+  $('hintBtn').disabled=busy||game.game_over()||game.turn()!==player;
+  $('askBtn').disabled=busy;
+  $('colorSel').value=player;$('levelSel').value=level;$('engineSel').value=opponentEngine;$('tierSel').value=tier;$('oddsSel').value=odds;
+  $('coachAvail').textContent=sampleState==='on'?(coachSource==='akashml'?'Stockfish analysis · AkashML coaching':'Powered by Claude on your account'):sampleState==='checking'?'Connecting…':analyzer?'Stockfish analysis · local explanations':'Local coaching mode · no LLM required';
+  renderLessons();
+  renderPlan();
+}
+
+/* ---------- input ---------- */
+$('board').addEventListener('click',e=>{const b=e.target.closest('.sq');if(b)onSquare(b.dataset.sq)});
+$('board').addEventListener('dragstart',e=>{const p=e.target.closest('.pc');if(!p||!canMovePiece(p.dataset.sq)){e.preventDefault();return}sel=p.dataset.sq;e.dataTransfer.setData('text/plain',sel);e.dataTransfer.effectAllowed='move';requestAnimationFrame(renderBoard)});
+$('board').addEventListener('dragover',e=>{if(sel)e.preventDefault()});
+$('board').addEventListener('drop',e=>{e.preventDefault();const b=e.target.closest('.sq');if(b)onSquare(b.dataset.sq)});
+function canInteract(){
+  if(busy||game.game_over())return false;
+  if(mode==='play'&&game.turn()!==player)return false;
+  if(mode==='lesson'&&LESSONS[lessonIdx].solvedNow)return false;
+  return true;
+}
+function canMovePiece(sq){const p=game.get(sq);return canInteract()&&p&&p.color===game.turn()}
+function onSquare(sq){
+  if(!canInteract())return;
+  if(sel&&sel!==sq){
+    const ok=game.moves({square:sel,verbose:true}).some(m=>m.to===sq);
+    if(ok){userMove(sel,sq);return}
+  }
+  sel=(sel!==sq&&canMovePiece(sq))?sq:null;
+  renderBoard();
+}
+function userMove(from,to){
+  const before={fen:game.fen(),legal:game.moves()};
+  const mv=game.move({from,to,promotion:'q'});
+  sel=null; if(!mv){render();return}
+  last={from,to};lastByCoach=false;coachNotice=null;
+  if(mode==='lesson'){checkLesson(mv);return}
+  before.studentMove=mv.from+mv.to+(mv.promotion||'');
+  save(); render();
+  if(game.game_over()){endGame();return}
+  coachReply(mv,before);
+}
+
+/* ---------- AI coach (Claude Artifact or server-side AkashML) ---------- */
+function plainRules(){return 'Write plain text only: no markdown, no bullet symbols, no headings.'}
+function errCopy(e){
+  switch(e&&e.code){
+    case 'rate_limited':return 'The coach is getting too many requests right now. Wait a minute and try again.';
+    case 'session_expired':return 'Your Claude session expired. Sign in again to keep using the coach.';
+    case 'refused':return 'The coach couldn’t answer that. Try asking a different way.';
+    default:return 'The coach didn’t answer. Try again.';
+  }
+}
+function disableSample(e){if(e&&['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].includes(e.code)){sample=null;sampleState='off';return true}return false}
+function makeServerSample(){
+  async function request(prompt,opts={},jsonMode=false){
+    let response,data;
+    try{
+      response=await fetch('/api/coach',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({prompt,tier:opts.modelTier||'default',purpose:opts.purpose||'question',json:jsonMode}),signal:opts.signal});
+      data=await response.json();
+    }catch(error){
+      const e=new Error('Coach request failed');e.code=opts.signal&&opts.signal.aborted?'cancelled':'server_error';throw e;
+    }
+    if(!response.ok){const e=new Error(data&&data.detail||'Coach request failed');e.code=data&&data.error||'server_error';throw e}
+    if(jsonMode)return data.json;
+    const text=String(data.text||'');if(opts.onText)opts.onText({text});return text;
+  }
+  const server=(prompt,opts)=>request(prompt,opts,false);
+  server.json=(prompt,opts)=>request(prompt,opts,true);
+  server.analyze=async payload=>{
+    let response,data;
+    try{
+      response=await fetch('/api/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+      data=await response.json();
+    }catch(error){const e=new Error('Engine request failed');e.code='engine_error';throw e}
+    if(!response.ok){const e=new Error(data&&data.detail||'Engine request failed');e.code=data&&data.error||'engine_error';throw e}
+    return data;
+  };
+  return server;
+}
+
+function materialLine(color){
+  let mine=0,theirs=0;
+  for(const row of game.board())for(const p of row)if(p){if(p.color===color)mine+=VAL[p.type];else theirs+=VAL[p.type]}
+  const diff=mine-theirs;
+  return diff===0?'Material after the move is equal.':'After the move, the student is '+(diff>0?'ahead':'behind')+' by '+Math.abs(diff)+' material point'+(Math.abs(diff)===1?'':'s')+'.';
+}
+async function coachReply(studentMove,beforeMove){
+  busy=true; render();
+  const legal=game.moves();
+  const studentColor=player==='w'?'White':'Black';
+  let engine=null;
+  if(analyzer){
+    try{engine=await analyzer({fen:game.fen(),beforeFen:beforeMove&&beforeMove.fen,studentMove:beforeMove&&beforeMove.studentMove,level,opponentEngine,baseFen:startFen(gameOdds,player==='w'?'b':'w'),moves:game.history({verbose:true}).map(m=>m.from+m.to+(m.promotion||''))})}
+    catch(e){addLog('sys',{text:'Objective analysis is temporarily unavailable; the fallback coach will choose this move.'})}
+  }
+  const engineMove=engine&&tryUci(engine.coachMove);
+  const moveEngine=engine&&engine.opponentEngine==='maia'?'Maia 3':'Stockfish';
+  if(engine&&engine.engineFallback)addLog('sys',{text:'Maia 3 is temporarily unavailable, so Stockfish chose this move.'});
+  const bestStudent=engine&&beforeMove&&engine.bestStudentMove?sanFromUci(beforeMove.fen,engine.bestStudentMove):null;
+  if(!sample){
+    if(!analyzer)await new Promise(r=>setTimeout(r,350));
+    const m=engineMove||localMove();
+    if(studentMove)addLog('coach',{san:studentMove.san,tag:engine&&engine.assessment||null,text:engine?engineStudentFeedback(engine,bestStudent):localStudentFeedback(studentMove)});
+    busy=false; playCoachMove(m,engineMove?(moveEngine==='Maia 3'?'Maia 3 chose a human-like move near '+engine.maiaElo+' Elo.':'Stockfish chose this move for the selected coach strength.'):localMoveWhy(m)); return;
+  }
+  const prompt=[
+    'You are a warm, encouraging chess coach playing a teaching game against a student who is '+LEVELS[level]+'.',
+    'The student plays '+studentColor+'. You play '+(player==='w'?'Black':'White')+'.',
+    oddsLine(),
+    'Game so far (PGN): '+(game.pgn()||'(no moves)'),
+    studentMove?('The student just played '+studentMove.san+'.'):'You make the first move of the game.',
+    studentMove&&beforeMove?('Position before the student move (FEN): '+beforeMove.fen):'',
+    studentMove&&beforeMove?('Student legal moves before moving (SAN): '+beforeMove.legal.join(' ')):'',
+    'Position after the student move / current position (FEN): '+game.fen(),
+    studentMove?materialLine(player):'',
+    'Your legal moves (SAN): '+legal.join(' '),
+    engine&&studentMove?('Stockfish assessment: '+engine.assessment+'. Estimated loss versus best play: '+engine.lossCp+' centipawns.'+(bestStudent?' Best alternative: '+bestStudent+'.':'')):'',
+    engineMove?(moveEngine+' selected your reply: '+engineMove.san+(moveEngine==='Maia 3'?' (human-play model at '+engine.maiaElo+' Elo).':' (difficulty '+level+', candidate rank '+engine.coachMoveRank+', search depth '+engine.depth+').')):'',
+    '',
+    'Tasks:',
+    studentMove?(engine?'1. Use exactly the Stockfish assessment above. Explain the concrete reason in 1-2 encouraging sentences; do not change the label.':'1. Compare the position before and after '+studentMove.san+'. Grade its actual consequence, not whether it was your first choice: "great" = clearly best or finds a decisive idea; "good" = sound and preserves the position or an existing advantage; "inaccuracy" = causes a concrete, noticeable but non-decisive deterioration; "mistake" = loses major material, misses a forced win, or creates a severe disadvantage; "blunder" = likely changes the game result or allows forced mate. Do not use a negative label merely because another move is stronger, because the move is quiet, or because the position is not perfect. Name the concrete harm and a better move for every negative label. If you cannot identify concrete harm from the supplied positions and legal moves, choose "good". Keep the feedback to 1-2 encouraging sentences.'):'1. Skip the assessment: use null for assessment and an empty string for feedback.',
+    engineMove?'2. Return exactly '+engineMove.san+' as your move. '+moveEngine+' has already selected it for the chosen difficulty; do not substitute another move.':'2. Choose your reply from the legal list above. Play sound, principled chess at a strength that challenges this student without crushing them. Never invent a move outside the list.',
+    '3. In one sentence, explain the idea behind your move so the student learns from it.',
+    '4. Assuming your move is played, give the student a short plan: 2-3 goals for THEIR next few moves (for example: deal with a threat you just created, finish developing a piece, castle, target a weak pawn, put a rook on an open file). Each goal is one short sentence. Mention squares or pieces, but describe ideas rather than dictating exact moves. Put the most urgent goal first, and if your move creates a threat, the first goal must be to deal with it.',
+    plainRules(),
+    'Reply with only JSON like {"assessment":"good","feedback":"...","move":"Nf6","why":"...","plan":["...","..."]}'
+  ].join('\n');
+  ctl=new AbortController();
+  let res=null, note=null;
+  try{ res=await sample.json(prompt,{modelTier:tier,purpose:'move',cache:false,signal:ctl.signal}); }
+  catch(e){
+    if(e&&e.code==='cancelled') note='You stopped the coach, so it played a quick move without comments.';
+    else if(disableSample(e)) note='The coach chat isn’t available, so the opponent will play simple moves.';
+    else note=errCopy(e)+' It played a quick move instead.';
+  }
+  busy=false; ctl=null;
+  if(res&&typeof res==='object'){
+    if(studentMove&&res.feedback){
+      const tag=engine&&engine.assessment?engine.assessment:(['great','good','inaccuracy','mistake','blunder'].includes(String(res.assessment))?String(res.assessment):null);
+      addLog('coach',{san:studentMove.san,tag,text:String(res.feedback)});
+    }else if(studentMove&&engine){
+      addLog('coach',{san:studentMove.san,tag:engine.assessment,text:engineStudentFeedback(engine,bestStudent)});
+    }
+    const m=engineMove||tryMove(String(res.move||''));
+    if(m){
+      const p=Array.isArray(res.plan)?res.plan.map(String).filter(s=>s.trim()).slice(0,3):[];
+      plan=p.length?{items:p,src:'coach',ply:game.history().length+1}:null;
+      playCoachMove(m,res.why?String(res.why):null);return}
+    note='The coach suggested a move that isn’t legal here, so it played a quick move instead.';
+  }
+  if(note)addLog('sys',{text:note});
+  if(studentMove&&engine&&(!res||typeof res!=='object'))addLog('coach',{san:studentMove.san,tag:engine.assessment,text:engineStudentFeedback(engine,bestStudent)});
+  playCoachMove(engineMove||localMove(),engineMove?(moveEngine==='Maia 3'?'Maia 3 chose a human-like move near '+engine.maiaElo+' Elo.':'Stockfish chose this move for the selected coach strength.'):null);
+}
+function tryUci(uci){
+  return game.moves({verbose:true}).find(m=>m.from+m.to+(m.promotion||'')===String(uci))||null;
+}
+function sanFromUci(fen,uci){
+  const g=new Chess(); if(!g.load(fen))return String(uci);
+  const m=g.moves({verbose:true}).find(x=>x.from+x.to+(x.promotion||'')===String(uci));
+  return m?m.san:String(uci);
+}
+function tryMove(san){
+  const norm=s=>s.replace(/[+#?!]/g,'').replace(/0-0-0/,'O-O-O').replace(/0-0/,'O-O').trim();
+  const v=game.moves({verbose:true}).find(m=>norm(m.san)===norm(san));
+  return v||null;
+}
+function playCoachMove(m,why){
+  const mv=game.move(m.san);
+  if(!mv){busy=false;render();return}
+  last={from:mv.from,to:mv.to};lastByCoach=true;coachNotice=mv.san;coachAnimating=true;busy=true;
+  if(why)addLog('coach',{san:'Coach: '+mv.san,text:why});
+  save(); render();
+  if(coachRevealTimer)clearTimeout(coachRevealTimer);
+  coachRevealTimer=setTimeout(()=>{coachRevealTimer=null;coachAnimating=false;busy=false;render();if(game.game_over())endGame()},700);
+}
+function localMove(){
+  const ms=game.moves({verbose:true});
+  let best=null,bestScore=-1e9;
+  for(const m of ms){
+    game.move(m.san);
+    if(game.in_checkmate()){game.undo();return m}
+    let loss=0;
+    for(const r of game.moves({verbose:true}))if(r.captured)loss=Math.max(loss,VAL[r.captured]);
+    const gain=m.captured?VAL[m.captured]:0;
+    const score=gain-0.9*loss+(game.in_check()?0.2:0)+Math.random()*0.4;
+    game.undo();
+    if(score>bestScore){bestScore=score;best=m}
+  }
+  return best;
+}
+function localStudentFeedback(m){
+  if(m.san.includes('#'))return 'That ends the game with checkmate.';
+  if(m.san.includes('+'))return 'You found a forcing check. Now watch for the reply before continuing your plan.';
+  if(m.captured)return 'You made a capture. Check that the capturing piece is safe and that your opponent has no stronger reply.';
+  if(/^O-O/.test(m.san))return 'Good practical choice: your king is safer and your rook is joining the game.';
+  return 'Keep using the same move checklist: opponent threats, forcing moves, loose pieces, then your plan.';
+}
+function engineStudentFeedback(engine,best){
+  const label=String(engine.assessment||'good');
+  const loss=Math.max(0,Number(engine.lossCp)||0);
+  if(label==='great')return 'Excellent—Stockfish agrees this was the strongest move in the position.';
+  if(label==='good')return loss?'Solid move. It kept the position close to best play.':'Solid move. It preserved the position without a meaningful concession.';
+  const pawns=(loss/100).toFixed(loss>=100?1:2).replace(/\.0$/,'');
+  return 'Stockfish rates this an '+label+' because the evaluation dropped by about '+pawns+' pawn'+(pawns==='1'?'':'s')+'.'+(best?' A stronger choice was '+best+'.':'');
+}
+function localMoveWhy(m){
+  if(!m)return null;
+  if(m.captured)return 'I’m taking available material. Before every move, scan for checks and captures on both sides.';
+  if(m.san.includes('+'))return 'I’m giving check to make you respond before carrying out your own plan.';
+  if(/^O-O/.test(m.san))return 'I’m castling to protect my king and activate a rook.';
+  if(m.piece==='n'||m.piece==='b')return 'I’m improving a minor piece and bringing it closer to the center.';
+  return 'I’m improving my position while keeping my pieces protected.';
+}
+function localHint(){
+  const items=basicPlan();
+  return 'Start with this question: '+(items[0]||'What is your opponent threatening?')+' Then compare your checks, captures, and threats.';
+}
+function localReview(){
+  const h=game.history({verbose:true}), mine=h.filter((_,i)=>(i%2===0?'w':'b')===player);
+  const captures=mine.filter(m=>m.captured).length, checks=mine.filter(m=>/[+#]/.test(m.san)).length;
+  const castled=mine.some(m=>/^O-O/.test(m.san));
+  return 'Local review (without engine evaluation): You played '+mine.length+' moves, made '+captures+' capture'+(captures===1?'':'s')+', and gave '+checks+' check'+(checks===1?'':'s')+'. '+(castled?'You got your king castled. ':'You did not castle; in future games, look for a safe chance to do that early. ')+'For your next game, pause before every move to check the opponent’s threats, then compare all checks, captures, and attacks on loose pieces.';
+}
+function localAnswer(q){
+  const s=q.toLowerCase();
+  if(s.includes('castle'))return 'Castling usually helps in two ways: it moves your king away from the center and activates a rook. First check that the destination is safe and that you are not castling into an attack.';
+  if(s.includes('center'))return 'Central pawns and pieces influence more squares and give your army room to move. Try to control d4, e4, d5, and e5 without pushing so many pawns that development falls behind.';
+  if(s.includes('fork'))return 'A fork is one piece attacking two targets at once. Knights and pawns are especially good at forks because their attack patterns are easy to miss.';
+  if(s.includes('pin'))return 'A pinned piece cannot move safely because something more valuable sits behind it. Before relying on a pin, check whether the pinned piece can capture the attacker or whether the piece behind it can move.';
+  if(s.includes('check'))return 'When you are in check, there are only three kinds of answer: capture the checking piece, block the line, or move the king. List all legal options before choosing.';
+  const items=basicPlan();return 'For this position, focus first on: '+items.join(' Then: ');
+}
+function endGame(){
+  let tip='';
+  const keys=Object.keys(ODDS), i=keys.indexOf(gameOdds);
+  if(game.in_checkmate()){
+    const won=game.turn()!==player;
+    if(won&&i>0) tip=' Nice work. Next game, try '+(i>1?ODDS[keys[i-1]].label:'an even game')+' for a tougher challenge.';
+    if(!won&&i<keys.length-1) tip=' For a bit more help next game, try '+ODDS[keys[i+1]].label+'.';
+  }
+  addLog('sys',{text:statusText()+tip+(sample&&game.history().length>=6?' Tap “Review my game” for the key moments.':'')});
+  render();
+}
+
+async function streamCoach(prompt,title,purpose='question'){
+  if(!sample)return;
+  busy=true; render();
+  const item=addLog('coach',{text:'Thinking…',san:title||null});
+  ctl=new AbortController();
+  try{
+    await sample(prompt,{modelTier:tier,purpose,cache:false,signal:ctl.signal,onText:({text})=>{item.text=text;renderLog()}});
+  }catch(e){
+    if(e&&e.code==='cancelled'){item.text=(e.text||'')+(e.text?'\n':'')+'(stopped)'}
+    else if(disableSample(e)){item.text='The coach chat isn’t available in this view.'}
+    else{item.text=(e&&e.text?e.text+'\n':'')+errCopy(e)}
+  }
+  busy=false; ctl=null; renderLog(); render();
+}
+
+$('hintBtn').onclick=()=>{
+  addLog('you',{text:'Can I have a hint?'});
+  if(!sample){addLog('coach',{text:localHint()});return}
+  const prompt=['You are a chess coach. Your student is '+LEVELS[level]+'. They play '+(player==='w'?'White':'Black')+' and it is their move.',
+   'Game so far (PGN): '+(game.pgn()||'(none)'),'Position (FEN): '+game.fen(),'Their legal moves: '+game.moves().join(' '),
+   'Give a hint in 2-3 sentences that points them toward a good plan or idea (what to look at, what the opponent threatens) WITHOUT naming the exact move.',plainRules()].join('\n');
+  streamCoach(prompt,null,'hint');
+};
+$('reviewBtn').onclick=()=>{
+  addLog('you',{text:'Review my game, please.'});
+  if(!sample){addLog('coach',{text:localReview(),san:'Game review'});return}
+  const prompt=['You are a chess coach reviewing a game with your student, who is '+LEVELS[level]+'. The student played '+(player==='w'?'White':'Black')+'; you (the coach) played the other side.',
+   'PGN: '+game.pgn(),'Result so far: '+statusText(),
+   'Give a short review: the 2-3 moments that mattered most (cite the move number and move, say what happened and what would have been better), then the 2 habits the student should work on next. Keep it under 220 words and encouraging but honest.',plainRules()].join('\n');
+  streamCoach(prompt,'Game review','review');
+};
+$('askForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const q=$('askInput').value.trim(); if(!q||busy)return;
+  $('askInput').value='';
+  addLog('you',{text:q});
+  if(!sample){addLog('coach',{text:localAnswer(q)});return}
+  const ctx=mode==='lesson'
+    ?'The student is working on a lesson called "'+LESSONS[lessonIdx].title+'" ('+LESSONS[lessonIdx].task+'). Do not give away the answer unless they ask for it directly.'
+    :'They are playing a teaching game against you as '+(player==='w'?'White':'Black')+'.';
+  const recent=logItems.filter(i=>i.kind!=='sys').slice(-6).map(i=>(i.kind==='you'?'Student: ':'Coach: ')+(i.san?i.san+' ':'')+i.text).join('\n');
+  const prompt=['You are a friendly chess coach. Your student is '+LEVELS[level]+'. '+ctx,
+   'Game so far (PGN): '+(game.pgn()||'(none)'),'Current position (FEN): '+game.fen()+' ('+(game.turn()==='w'?'White':'Black')+' to move)',
+   recent?('Recent conversation:\n'+recent):'',
+   'Student’s question: '+q,'Answer clearly in under 150 words, using this position for examples when it helps. Be careful to describe the position accurately from the FEN.',plainRules()].join('\n');
+  streamCoach(prompt,null,'question');
+});
+$('askInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('askForm').requestSubmit()}});
+$('stopBtn').onclick=()=>{if(ctl)ctl.abort()};
+$('coachMoveBtn').onclick=()=>coachReply(null);
+
+/* ---------- play controls ---------- */
+function resetCoachReveal(){
+  if(coachRevealTimer)clearTimeout(coachRevealTimer);
+  coachRevealTimer=null;coachAnimating=false;coachNotice=null;
+}
+$('newBtn').onclick=()=>{
+  if(ctl)ctl.abort();
+  resetCoachReveal();
+  player=$('colorSel').value; level=$('levelSel').value; opponentEngine=$('engineSel').value; tier=$('tierSel').value;
+  odds=$('oddsSel').value; gameOdds=odds;
+  game=new Chess(startFen(gameOdds,player==='w'?'b':'w')); sel=null; last=null; lastByCoach=false; busy=false; plan=null;
+  addLog('sys',{text:'New game. You play '+(player==='w'?'White':'Black')+(gameOdds==='none'?'.':', and the coach gives '+ODDS[gameOdds].label+' (it starts without '+ODDS[gameOdds].desc+').')});
+  save(); render();
+  if(player==='b')coachReply(null);
+};
+$('levelSel').onchange=()=>{level=$('levelSel').value;save()};
+$('engineSel').onchange=()=>{opponentEngine=$('engineSel').value;save();addLog('sys',{text:(opponentEngine==='maia'?'Maia 3 will choose human-like moves at the selected strength. Stockfish will still grade your play.':'Stockfish will calculate the coach’s moves at the selected strength.')})};
+$('tierSel').onchange=()=>{tier=$('tierSel').value;save()};
+$('oddsSel').onchange=()=>{odds=$('oddsSel').value;save();addLog('sys',{text:'Press “New game” to start with '+ODDS[odds].label+'.'})};
+$('colorSel').onchange=()=>{addLog('sys',{text:'Press “New game” to start as '+($('colorSel').value==='w'?'White':'Black')+'.'})};
+$('undoBtn').onclick=()=>{
+  if(ctl)ctl.abort(); resetCoachReveal(); busy=false;
+  if(!game.history().length)return;
+  game.undo();
+  if(game.turn()!==player&&game.history().length)game.undo();
+  const h=game.history({verbose:true}),m=h[h.length-1]; last=m?{from:m.from,to:m.to}:null;lastByCoach=!!m&&m.color!==player;sel=null;
+  addLog('sys',{text:'Took back your last move.'});
+  save(); render();
+};
+$('pgnBtn').onclick=()=>{
+  const pgn=game.pgn()||'(no moves yet)';
+  const out=$('pgnOut');
+  const show=()=>{out.hidden=false;out.textContent=pgn};
+  try{navigator.clipboard.writeText(pgn).then(()=>{$('pgnBtn').textContent='Copied';setTimeout(()=>$('pgnBtn').textContent='Copy PGN',1500)},show)}catch(e){show()}
+};
+
+/* ---------- lessons ---------- */
+function renderLessons(){
+  const units=['All',...new Set(LESSONS.map(l=>l.unit))];
+  const filters=$('lessonFilters'); filters.textContent='';
+  for(const unit of units){
+    const b=document.createElement('button');b.type='button';b.className='lesson-filter';b.textContent=unit;
+    b.setAttribute('aria-pressed',String(unit===lessonFilter));
+    b.onclick=()=>{lessonFilter=unit;renderLessons()};filters.append(b);
+  }
+  const complete=LESSONS.filter(l=>solved.has(l.id)).length, pct=Math.round(complete/LESSONS.length*100);
+  $('lessonProgress').textContent=complete+' of '+LESSONS.length+' lessons solved';
+  $('lessonProgressPct').textContent=pct+'%';
+  $('lessonProgressBar').style.width=pct+'%';
+  const track=$('lessonProgressBar').parentElement;track.setAttribute('aria-valuemax',String(LESSONS.length));track.setAttribute('aria-valuenow',String(complete));
+  const el=$('lessonList'); el.textContent='';
+  LESSONS.forEach((l,i)=>{
+    if(lessonFilter!=='All'&&l.unit!==lessonFilter)return;
+    const b=document.createElement('button'); b.type='button'; b.className='lesson';
+    if(mode==='lesson'&&i===lessonIdx)b.setAttribute('aria-current','true');
+    const m=document.createElement('span');m.className='meta';
+    const u=document.createElement('span');u.textContent=l.unit;
+    const d=document.createElement('span');d.textContent='●'.repeat(l.difficulty)+'○'.repeat(3-l.difficulty);d.setAttribute('aria-label','Difficulty '+l.difficulty+' of 3');m.append(u,d);
+    const t=document.createElement('span');t.className='t';t.textContent=l.title;
+    const c=document.createElement('span');c.className='c';c.textContent=l.concept;
+    b.append(m,t,c);
+    if(solved.has(l.id)){const d=document.createElement('span');d.className='done';d.textContent='Solved';b.append(d)}
+    b.onclick=()=>loadLesson(i);
+    el.append(b);
+  });
+  const l=LESSONS[lessonIdx];
+  $('lessonConcept').textContent='Lesson '+(lessonIdx+1)+' of '+LESSONS.length+' · '+l.unit+' · '+l.concept+' · Difficulty '+l.difficulty+'/3';
+  $('lessonTitle').textContent=l.title; $('lessonTask').textContent=l.task;
+}
+let savedPlay=null;
+function loadLesson(i){
+  if(ctl)ctl.abort(); resetCoachReveal(); busy=false;
+  lessonIdx=i; const l=LESSONS[i]; l.solvedNow=false;
+  game=new Chess(l.fen); sel=null; last=null;lastByCoach=false;
+  addLog('sys',{text:'Lesson: '+l.title+'. '+l.task});
+  render();
+}
+function checkLesson(mv){
+  const l=LESSONS[lessonIdx];
+  const norm=s=>s.replace(/[+#]/g,'');
+  if(norm(mv.san)===norm(l.sol)){
+    l.solvedNow=true; solved.add(l.id); save();
+    addLog('coach',{san:mv.san,tag:'great',text:l.explain});
+  }else{
+    game.undo(); last=null;
+    addLog('coach',{san:mv.san,text:'That’s a legal move, but it isn’t the key idea here. Try again, or tap Hint.'});
+  }
+  render();
+}
+$('lHint').onclick=()=>addLog('coach',{text:LESSONS[lessonIdx].hint});
+$('lReveal').onclick=()=>{
+  const l=LESSONS[lessonIdx]; if(l.solvedNow)return;
+  game=new Chess(l.fen); const mv=game.move(l.sol); last={from:mv.from,to:mv.to}; sel=null; l.solvedNow=true;
+  addLog('coach',{san:mv.san,text:l.explain}); render();
+};
+$('lReset').onclick=()=>loadLesson(lessonIdx);
+$('lNext').onclick=()=>loadLesson((lessonIdx+1)%LESSONS.length);
+
+function setMode(m){
+  if(m===mode)return;
+  if(ctl)ctl.abort(); resetCoachReveal(); busy=false;
+  if(m==='lesson'){savedPlay={pgn:game.pgn(),last,lastByCoach};mode='lesson';loadLesson(lessonIdx)}
+  else{
+    mode='play'; game=new Chess(); sel=null; last=null;lastByCoach=false;
+    if(savedPlay&&savedPlay.pgn){game.load_pgn(savedPlay.pgn);last=savedPlay.last;lastByCoach=!!savedPlay.lastByCoach}
+  }
+  $('tabPlay').setAttribute('aria-selected',String(mode==='play'));
+  $('tabLessons').setAttribute('aria-selected',String(mode==='lesson'));
+  $('playPanel').hidden=mode!=='play'; $('lessonPanel').hidden=mode!=='lesson';
+  render();
+}
+$('tabPlay').onclick=()=>setMode('play');
+$('tabLessons').onclick=()=>setMode('lesson');
+
+/* ---------- boot ---------- */
+const resumed=restore();
+addLog('coach',{text:resumed
+  ?'Welcome back. Your last game is set up where you left off.'
+  :'Hi! Make your first move whenever you’re ready. I’ll comment on each move and explain mine. Ask me anything below, or open Lessons to practice key patterns.'});
+render();
+(async()=>{
+  try{
+    sample=(window.claude&&window.claude.use)?await window.claude.use('sample'):null;
+    if(sample)coachSource='claude';
+  }catch(e){sample=null}
+  if(!sample){
+    try{
+      const health=await fetch('/api/health',{headers:{accept:'application/json'}}).then(r=>r.ok?r.json():null);
+      if(health){const server=makeServerSample();analyzer=server.analyze;if(health.model_configured){sample=server;coachSource='akashml'}}
+    }catch(e){}
+  }
+  sampleState=sample?'on':'off';
+  render();
+})();
+})();
+</script>

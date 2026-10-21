@@ -1,0 +1,19 @@
+{
+  "name": "chess-coach",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chess Coach with AkashML-enhanced teaching games, lessons, and handicaps",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/verify.mjs && node tests/server.mjs",
+    "build": "node scripts/build-preview.mjs",
+    "preview": "node scripts/build-preview.mjs",
+    "start": "npm run build && node --env-file-if-exists=.env scripts/serve.mjs"
+  },
+  "devDependencies": {
+    "chess.js": "0.10.3"
+  },
+  "dependencies": {
+    "stockfish": "^19.0.1"
+  }
+}
