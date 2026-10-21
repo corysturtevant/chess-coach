@@ -1,4 +1,5 @@
 # Chess Coach
+<img width="1300" height="1021" alt="image" src="https://github.com/user-attachments/assets/04f7bb3c-7504-4f81-88f3-7c47ff3d6290" />
 
 A responsive chess trainer with teaching games, a 24-lesson curriculum, objective Stockfish analysis, and optional AI-written coaching. It runs locally without an AI provider and automatically enables richer explanations when AkashML is configured.
 
