@@ -62,6 +62,18 @@ for assessment labels, centipawn loss, and the suggested better move. See
 
 After every coach move, the board stays locked for a 700 ms reveal: the piece visibly travels from its origin to its destination, the move squares receive a strong highlight, and a persistent `Coach played …` notice remains until the student moves.
 
+## Interface and appearance
+
+The play screen uses the Sturtevant.Team visual system: a board-first responsive layout, a five-step
+move-grade spectrum, a dedicated coach-move card, and orange-only coach move cues. It adapts to
+phone, standard iPad, iPad Pro, and desktop widths; iPad landscape keeps the board dominant with
+analysis alongside it.
+
+Open the settings button in the header to choose **System**, **Light**, or **Dark** appearance.
+System follows the device preference, while an explicit choice is stored locally under
+`chesscoach.theme`. Theme selection is available from both Play and Lessons and does not affect the
+saved game or lesson progress.
+
 Coach modes split work by purpose:
 
 | Mode | Normal moves | Hints | Questions and game review |

@@ -39,6 +39,13 @@ check(compose.includes('dockerfile: Dockerfile.maia') && compose.includes('MAIA_
 check(js.includes("opponentEngine,baseFen:startFen") && js.includes("engine.opponentEngine==='maia'"), 'client sends move history and identifies Maia replies');
 check(manifest.name === 'Chess Coach' && manifest.icons.some(icon => icon.sizes === '512x512'), 'home-screen manifest names the app and includes a 512px icon');
 check(buildScript.includes('apple-touch-icon') && buildScript.includes('apple-mobile-web-app-capable'), 'build adds iPad home-screen metadata');
+check(html.includes('data-theme-choice="system"') && html.includes('data-theme-choice="light"') && html.includes('data-theme-choice="dark"'), 'settings offer System, Light, and Dark appearance modes');
+check(js.includes("localStorage.getItem('chesscoach.theme')") && js.includes("localStorage.setItem('chesscoach.theme',t)"), 'theme preference persists locally');
+check(html.includes('--paper:#fbf9f6') && html.includes('--paper:#14171c'), 'redesign defines light and dark design tokens');
+check(html.includes('id="gradeSpectrum"') && js.includes("GRADE_ORDER=['blunder','mistake','inaccuracy','good','great']"), 'move-strength spectrum renders every grade');
+check(html.includes('id="settingsDrawer"') && js.includes("e.key==='Escape'"), 'settings drawer supports keyboard dismissal');
+check(html.includes('id="moveArrow"') && js.includes('function renderMoveArrow()'), 'coach move arrow is rendered from board coordinates');
+check(html.includes('data:image/png;base64,'), 'header embeds the Coach Knight mark for Artifact compatibility');
 for (const icon of ['apple-touch-icon.png', 'favicon-32.png', 'icon-192.png', 'icon-512.png']) {
   check(existsSync(new URL(`../src/icons/${icon}`, import.meta.url)), `home-screen asset ${icon} exists`);
 }

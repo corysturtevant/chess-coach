@@ -104,11 +104,14 @@ Error handling branches on `e.code` (never `e.message`). Permanent codes (`not_g
 - `odds` (selected for the next game) and `gameOdds` (what the current game started with). Keys are in `ODDS`.
 - `plan`, `logItems`, `solved` (lesson ids), `busy`, `ctl` (AbortController for the in-flight Claude call)
 - Persisted to localStorage key `chesscoach.v1`: `{pgn, player, level, tier, odds, gameOdds, solved, plan}`. Odds games survive reloads because chess.js writes `[SetUp]`/`[FEN]` headers into the PGN.
+- `themePreference`: `'system' | 'light' | 'dark'`, stored separately as `chesscoach.theme`; System removes the root `data-theme` attribute and follows `prefers-color-scheme`.
 
 ## Features and where they live
 
 - **Board**: `renderBoard()`. A CSS grid with 8 fixed `minmax(0,1fr)` rows and columns and `aspect-ratio: 1` squares, so empty ranks never collapse (this was a bug; keep both row and column templates). Click-to-move plus HTML5 drag. Promotion is always to a queen.
 - **Coach move reveal**: `playCoachMove()` keeps `busy=true` for 700 ms after applying the move. `boardPoint()` converts the move's origin/destination into orientation-aware grid deltas; `--coach-dx`/`--coach-dy` animate the actual piece across its path. `coachAnimating`, `lastByCoach`, and `coachNotice` also drive stronger move-square highlights, the persistent notice, and input lock. Reset the reveal timer when starting/undoing a game or switching modes.
+- **Move analysis UI**: `renderMoveGrade()` places the engine assessment on the five-step spectrum; `renderCoachCard()` and `renderMoveArrow()` make the reply, explanation, path, replay action, and follow-up action persistent and visible.
+- **Settings and appearance**: the drawer is outside `playPanel` so it remains usable from Lessons. `applyTheme()` and `setTheme()` implement System/Light/Dark without coupling appearance to game state.
 - **Handicap**: `ODDS` + `startFen(key, coachColor)` remove pieces from the coach's side and fix castling rights. `oddsLine()` tells Claude about the handicap. `endGame()` suggests the next odds level up or down.
 - **Plan card**: `renderPlan()`. Coach plan when fresh, else `basicPlan()` (pieces under attack via `attackedBy()`, undeveloped minors, castling, center).
 - **Lessons**: `LESSONS` array with `{id, unit, difficulty, title, concept, fen, sol, task, hint, explain}`. `sol` is SAN. A match ignores `+`/`#`. Hints and explanations are static (no Claude cost).
