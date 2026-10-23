@@ -9,7 +9,7 @@ operations notes, not in this repository.
 
 ```
 src/chess-coach.html      The whole app: markup, CSS and JS in one readable source file
-src/board-styles/         Optimized redesign board frames and piece sprite sheets
+src/board-styles/         Board frames, original sprite exports, and cleaned `*-pieces-v2.png` production sheets
 src/manifest.webmanifest  Standalone/PWA name, colors, and 192/512px icon declarations
 src/icons/                Coach Knight master art plus Apple, PWA, and favicon sizes
 scripts/build-preview.mjs Builds the standalone app and self-contained dist/artifact.html

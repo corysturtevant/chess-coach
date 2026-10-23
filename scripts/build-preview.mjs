@@ -28,12 +28,13 @@ copyFileSync(new URL('../src/manifest.webmanifest', import.meta.url), new URL('.
 for (const icon of ['apple-touch-icon.png', 'favicon-32.png', 'icon-192.png', 'icon-512.png']) {
   copyFileSync(new URL(`../src/icons/${icon}`, import.meta.url), new URL(`../dist/icons/${icon}`, import.meta.url));
 }
-const boardAssets=['aether-board.webp','aether-pieces.webp','neon-board.webp','neon-pieces.webp','wildwood-board.webp','wildwood-pieces.webp','spell-board.webp','spell-pieces.webp'];
+const boardAssets=['aether-board.webp','aether-pieces-v2.png','neon-board.webp','neon-pieces-v2.png','wildwood-board.webp','wildwood-pieces-v2.png','spell-board.webp','spell-pieces-v2.png'];
 let artifact=source;
 for(const asset of boardAssets){
   const input=new URL(`../src/board-styles/${asset}`,import.meta.url);
   copyFileSync(input,new URL(`../dist/board-styles/${asset}`,import.meta.url));
-  const data='data:image/webp;base64,'+readFileSync(input).toString('base64');
+  const mime=asset.endsWith('.png')?'image/png':'image/webp';
+  const data=`data:${mime};base64,`+readFileSync(input).toString('base64');
   artifact=artifact.replaceAll(`/board-styles/${asset}`,data);
 }
 writeFileSync(new URL('../dist/artifact.html',import.meta.url),artifact);

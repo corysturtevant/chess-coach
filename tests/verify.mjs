@@ -59,10 +59,10 @@ check(html.includes('data:image/png;base64,'), 'header embeds the Coach Knight m
 for (const icon of ['apple-touch-icon.png', 'favicon-32.png', 'icon-192.png', 'icon-512.png']) {
   check(existsSync(new URL(`../src/icons/${icon}`, import.meta.url)), `home-screen asset ${icon} exists`);
 }
-for (const asset of ['aether-board.webp','aether-pieces.webp','neon-board.webp','neon-pieces.webp','wildwood-board.webp','wildwood-pieces.webp','spell-board.webp','spell-pieces.webp']) {
+for (const asset of ['aether-board.webp','aether-pieces.webp','aether-pieces-v2.png','neon-board.webp','neon-pieces.webp','neon-pieces-v2.png','wildwood-board.webp','wildwood-pieces.webp','wildwood-pieces-v2.png','spell-board.webp','spell-pieces.webp','spell-pieces-v2.png']) {
   check(existsSync(new URL(`../src/board-styles/${asset}`, import.meta.url)), `redesign asset ${asset} exists`);
 }
-check(buildScript.includes("writeFileSync(new URL('../dist/artifact.html'") && buildScript.includes("'data:image/webp;base64,'"), 'build emits self-contained Artifact source');
+check(buildScript.includes("writeFileSync(new URL('../dist/artifact.html'") && buildScript.includes("'image/png':'image/webp'"), 'build emits self-contained Artifact source');
 check(serverScript.includes("'.webp': 'image/webp'"), 'server sends board artwork with the WebP content type');
 for (const l of LESSONS) {
   check(typeof l.unit === 'string' && l.unit.length > 0, `lesson ${l.id}: unit is set`);

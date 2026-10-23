@@ -9,3 +9,4 @@ dist/
 *.p12
 *.pfx
 secrets/
+.DS_Store
