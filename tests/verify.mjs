@@ -7,6 +7,7 @@ const { Chess } = require('chess.js');
 const html = readFileSync(new URL('../src/chess-coach.html', import.meta.url), 'utf8');
 const compose = readFileSync(new URL('../compose.yaml', import.meta.url), 'utf8');
 const buildScript = readFileSync(new URL('../scripts/build-preview.mjs', import.meta.url), 'utf8');
+const serverScript = readFileSync(new URL('../scripts/serve.mjs', import.meta.url), 'utf8');
 const manifest = JSON.parse(readFileSync(new URL('../src/manifest.webmanifest', import.meta.url), 'utf8'));
 const js = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const grab = re => { const m = js.match(re); if (!m) throw new Error('Could not find ' + re); return m[0]; };
@@ -41,6 +42,15 @@ check(manifest.name === 'Chess Coach' && manifest.icons.some(icon => icon.sizes 
 check(buildScript.includes('apple-touch-icon') && buildScript.includes('apple-mobile-web-app-capable'), 'build adds iPad home-screen metadata');
 check(html.includes('data-theme-choice="system"') && html.includes('data-theme-choice="light"') && html.includes('data-theme-choice="dark"'), 'settings offer System, Light, and Dark appearance modes');
 check(js.includes("localStorage.getItem('chesscoach.theme')") && js.includes("localStorage.setItem('chesscoach.theme',t)"), 'theme preference persists locally');
+for (const style of ['classic', 'aether', 'neon', 'wildwood', 'spell']) {
+  check(html.includes(`data-board-choice="${style}"`), `settings offer the ${style} board style`);
+}
+check(js.includes("localStorage.getItem('chesscoach.boardStyle')") && js.includes("localStorage.setItem('chesscoach.boardStyle',s)"), 'board style persists locally');
+check(js.includes("document.documentElement.setAttribute('data-board-style',boardStyle)"), 'selected board style is applied to the document');
+check(js.includes("className='pc '+p.color+' '+(boardStyle==='classic'?'glyph':'sprite')"), 'custom themes render illustrated piece sprites');
+check(html.includes('data-coach-prompt="What is the threat?"'), 'coach includes suggested question chips');
+check(html.includes('id="coachOpening"') && html.includes('id="coachWatchBlock"'), 'coach card includes opening and watch-for context');
+check(js.includes('moveGrades.push({ply,assessment:moveGrade.assessment})') && html.includes('sheet-grade'), 'scoresheet records move grades');
 check(html.includes('--paper:#fbf9f6') && html.includes('--paper:#14171c'), 'redesign defines light and dark design tokens');
 check(html.includes('id="gradeSpectrum"') && js.includes("GRADE_ORDER=['blunder','mistake','inaccuracy','good','great']"), 'move-strength spectrum renders every grade');
 check(html.includes('id="settingsDrawer"') && js.includes("e.key==='Escape'"), 'settings drawer supports keyboard dismissal');
@@ -49,6 +59,11 @@ check(html.includes('data:image/png;base64,'), 'header embeds the Coach Knight m
 for (const icon of ['apple-touch-icon.png', 'favicon-32.png', 'icon-192.png', 'icon-512.png']) {
   check(existsSync(new URL(`../src/icons/${icon}`, import.meta.url)), `home-screen asset ${icon} exists`);
 }
+for (const asset of ['aether-board.webp','aether-pieces.webp','neon-board.webp','neon-pieces.webp','wildwood-board.webp','wildwood-pieces.webp','spell-board.webp','spell-pieces.webp']) {
+  check(existsSync(new URL(`../src/board-styles/${asset}`, import.meta.url)), `redesign asset ${asset} exists`);
+}
+check(buildScript.includes("writeFileSync(new URL('../dist/artifact.html'") && buildScript.includes("'data:image/webp;base64,'"), 'build emits self-contained Artifact source');
+check(serverScript.includes("'.webp': 'image/webp'"), 'server sends board artwork with the WebP content type');
 for (const l of LESSONS) {
   check(typeof l.unit === 'string' && l.unit.length > 0, `lesson ${l.id}: unit is set`);
   check(Number.isInteger(l.difficulty) && l.difficulty >= 1 && l.difficulty <= 3, `lesson ${l.id}: difficulty is 1–3`);

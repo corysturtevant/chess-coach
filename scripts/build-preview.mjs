@@ -2,7 +2,8 @@
 // The Claude coach is unavailable locally; the page falls back to its built-in opponent.
 import { copyFileSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 
-const body = readFileSync(new URL('../src/chess-coach.html', import.meta.url), 'utf8')
+const source = readFileSync(new URL('../src/chess-coach.html', import.meta.url), 'utf8');
+const body = source
   .replace('https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.js', './vendor/chess.js');
 const appHead = `<meta name="theme-color" content="#2c6a4c">
 <meta name="apple-mobile-web-app-title" content="Chess Coach">
@@ -19,6 +20,7 @@ ${body}
 mkdirSync(new URL('../dist/', import.meta.url), { recursive: true });
 mkdirSync(new URL('../dist/vendor/', import.meta.url), { recursive: true });
 mkdirSync(new URL('../dist/icons/', import.meta.url), { recursive: true });
+mkdirSync(new URL('../dist/board-styles/', import.meta.url), { recursive: true });
 writeFileSync(new URL('../dist/index.html', import.meta.url), doc);
 writeFileSync(new URL('../dist/preview.html', import.meta.url), doc);
 copyFileSync(new URL('../node_modules/chess.js/chess.js', import.meta.url), new URL('../dist/vendor/chess.js', import.meta.url));
@@ -26,4 +28,13 @@ copyFileSync(new URL('../src/manifest.webmanifest', import.meta.url), new URL('.
 for (const icon of ['apple-touch-icon.png', 'favicon-32.png', 'icon-192.png', 'icon-512.png']) {
   copyFileSync(new URL(`../src/icons/${icon}`, import.meta.url), new URL(`../dist/icons/${icon}`, import.meta.url));
 }
-console.log('Built standalone app in dist/');
+const boardAssets=['aether-board.webp','aether-pieces.webp','neon-board.webp','neon-pieces.webp','wildwood-board.webp','wildwood-pieces.webp','spell-board.webp','spell-pieces.webp'];
+let artifact=source;
+for(const asset of boardAssets){
+  const input=new URL(`../src/board-styles/${asset}`,import.meta.url);
+  copyFileSync(input,new URL(`../dist/board-styles/${asset}`,import.meta.url));
+  const data='data:image/webp;base64,'+readFileSync(input).toString('base64');
+  artifact=artifact.replaceAll(`/board-styles/${asset}`,data);
+}
+writeFileSync(new URL('../dist/artifact.html',import.meta.url),artifact);
+console.log('Built standalone app and self-contained Artifact source in dist/');

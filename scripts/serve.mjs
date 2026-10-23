@@ -18,7 +18,7 @@ const maiaLevels = {
   improving: { elo: 1200, temperature: 1.0, topP: 0.95 },
   club: { elo: 1600, temperature: 0.85, topP: 0.9 }
 };
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.webmanifest': 'application/manifest+json; charset=utf-8' };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.webp': 'image/webp', '.webmanifest': 'application/manifest+json; charset=utf-8' };
 let activeCoachRequests = 0;
 let activeEngineRequests = 0;
 

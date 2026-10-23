@@ -74,6 +74,11 @@ System follows the device preference, while an explicit choice is stored locally
 `chesscoach.theme`. Theme selection is available from both Play and Lessons and does not affect the
 saved game or lesson progress.
 
+The same drawer offers five complete board-and-piece styles: **Classic**, **Aether Court**, **Neon
+Orbit**, **Wildwood**, and **Spell & Scale**. The illustrated styles use the redesign's optimized
+WebP artwork and retain a larger edge-to-edge board on narrow phones. The choice is stored locally
+under `chesscoach.boardStyle` and works with every light/dark appearance setting.
+
 Coach modes split work by purpose:
 
 | Mode | Normal moves | Hints | Questions and game review |
@@ -88,7 +93,7 @@ Deep Review deliberately keeps ordinary moves on Qwen 3.8 because Stockfish alre
 
 ```sh
 npm test       # lesson, handicap, Stockfish, and mocked AkashML proxy tests
-npm run build  # standalone output in dist/
+npm run build  # standalone app plus self-contained Artifact source in dist/
 npm start      # build and serve locally
 ```
 

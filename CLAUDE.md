@@ -8,10 +8,12 @@ operations notes, not in this repository.
 ## Layout
 
 ```
-src/chess-coach.html      The whole app: markup, CSS and JS in one file (artifact source)
+src/chess-coach.html      The whole app: markup, CSS and JS in one readable source file
+src/board-styles/         Optimized redesign board frames and piece sprite sheets
 src/manifest.webmanifest  Standalone/PWA name, colors, and 192/512px icon declarations
 src/icons/                Coach Knight master art plus Apple, PWA, and favicon sizes
-scripts/build-preview.mjs Wraps the source in a full HTML document → dist/preview.html
+scripts/build-preview.mjs Builds the standalone app and self-contained dist/artifact.html
+scripts/import-redesign-assets.mjs Re-extracts optimized art from the exported redesign HTML
 scripts/serve.mjs         Static server + server-side AkashML proxy
 scripts/engine.mjs        Stockfish analysis, grading, and strength profiles
 scripts/maia_service.py   Internal HTTP/UCI wrapper for the Maia-3 CPU sidecar
@@ -35,10 +37,11 @@ package.json              npm scripts: test, preview
 
 ## Artifact contract (do not break)
 
-`src/chess-coach.html` is written for the claude.ai Artifact publisher, which has rules a normal web page doesn't:
+`src/chess-coach.html` remains compatible with the claude.ai Artifact publisher after the build
+inlines its board artwork. Publish `dist/artifact.html`, not the raw source file. Its constraints are:
 
 - **No `<!doctype>`, `<html>`, `<head>` or `<body>` tags.** The publisher wraps the file in its own skeleton. The file starts with `<title>`, then `<link>` and `<style>`.
-- **External scripts only from the allowlisted CDNs** (cdnjs, cdn.jsdelivr.net/npm, unpkg, cdn.tailwindcss.com, code.jquery.com). Fonts only from Google Fonts. Everything else must be inlined. chess.js loads from `cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.js`.
+- **External scripts only from the allowlisted CDNs** (cdnjs, cdn.jsdelivr.net/npm, unpkg, cdn.tailwindcss.com, code.jquery.com). Fonts only from Google Fonts. Everything else must be inlined. chess.js loads from `cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.js`; the build converts the WebP board assets to data URLs.
 - **No `alert`/`confirm`/`prompt`, no `window.print`, no download links.** Build confirmations into the page.
 - **Theme tokens.** All colors are CSS custom properties defined on bare `:root` (light), redefined under `@media (prefers-color-scheme: dark) :root:not([data-theme="light"])` and again under `:root[data-theme="dark"]`. Never use a literal color that only works in one theme. The board squares and piece colors are intentionally fixed.
 - **Phone width.** It must work at ~400px with no horizontal page scroll.
@@ -103,15 +106,16 @@ Error handling branches on `e.code` (never `e.message`). Permanent codes (`not_g
 - `player` (`'w'|'b'`), `level` (`beginner|improving|club`), `tier` (`default|quick`)
 - `odds` (selected for the next game) and `gameOdds` (what the current game started with). Keys are in `ODDS`.
 - `plan`, `logItems`, `solved` (lesson ids), `busy`, `ctl` (AbortController for the in-flight Claude call)
-- Persisted to localStorage key `chesscoach.v1`: `{pgn, player, level, tier, odds, gameOdds, solved, plan}`. Odds games survive reloads because chess.js writes `[SetUp]`/`[FEN]` headers into the PGN.
+- Persisted to localStorage key `chesscoach.v1`: `{pgn, player, level, tier, odds, gameOdds, solved, plan, moveGrades}`. Odds games survive reloads because chess.js writes `[SetUp]`/`[FEN]` headers into the PGN.
 - `themePreference`: `'system' | 'light' | 'dark'`, stored separately as `chesscoach.theme`; System removes the root `data-theme` attribute and follows `prefers-color-scheme`.
+- `boardStyle`: `'classic' | 'aether' | 'neon' | 'wildwood' | 'spell'`, stored separately as `chesscoach.boardStyle`.
 
 ## Features and where they live
 
-- **Board**: `renderBoard()`. A CSS grid with 8 fixed `minmax(0,1fr)` rows and columns and `aspect-ratio: 1` squares, so empty ranks never collapse (this was a bug; keep both row and column templates). Click-to-move plus HTML5 drag. Promotion is always to a queen.
+- **Board**: `renderBoard()`. A CSS grid with 8 fixed `minmax(0,1fr)` rows and columns and `aspect-ratio: 1` squares, so empty ranks never collapse (this was a bug; keep both row and column templates). Classic uses Unicode pieces; the four illustrated styles use 6×2 sprite sheets over themed frames. Narrow phones flatten the decorative frame so the playable squares remain large. Click-to-move plus HTML5 drag. Promotion is always to a queen.
 - **Coach move reveal**: `playCoachMove()` keeps `busy=true` for 700 ms after applying the move. `boardPoint()` converts the move's origin/destination into orientation-aware grid deltas; `--coach-dx`/`--coach-dy` animate the actual piece across its path. `coachAnimating`, `lastByCoach`, and `coachNotice` also drive stronger move-square highlights, the persistent notice, and input lock. Reset the reveal timer when starting/undoing a game or switching modes.
-- **Move analysis UI**: `renderMoveGrade()` places the engine assessment on the five-step spectrum; `renderCoachCard()` and `renderMoveArrow()` make the reply, explanation, path, replay action, and follow-up action persistent and visible.
-- **Settings and appearance**: the drawer is outside `playPanel` so it remains usable from Lessons. `applyTheme()` and `setTheme()` implement System/Light/Dark without coupling appearance to game state.
+- **Move analysis UI**: `renderMoveGrade()` places the engine assessment on the five-step spectrum and records it in the scoresheet; `renderCoachCard()` and `renderMoveArrow()` make the reply, opening name, explanation, next concern, path, replay action, and follow-up action persistent and visible.
+- **Settings and appearance**: the drawer is outside `playPanel` so it remains usable from Lessons. `applyTheme()` and `setTheme()` implement System/Light/Dark, while `setBoardStyle()` selects the board family without coupling appearance to game state.
 - **Handicap**: `ODDS` + `startFen(key, coachColor)` remove pieces from the coach's side and fix castling rights. `oddsLine()` tells Claude about the handicap. `endGame()` suggests the next odds level up or down.
 - **Plan card**: `renderPlan()`. Coach plan when fresh, else `basicPlan()` (pieces under attack via `attackedBy()`, undeveloped minors, castling, center).
 - **Lessons**: `LESSONS` array with `{id, unit, difficulty, title, concept, fen, sol, task, hint, explain}`. `sol` is SAN. A match ignores `+`/`#`. Hints and explanations are static (no Claude cost).
@@ -119,9 +123,9 @@ Error handling branches on `e.code` (never `e.message`). Permanent codes (`not_g
 
 ## Publishing changes
 
-When publishing as an Artifact, update the existing private Artifact rather than creating a new
-public link. Omit `capabilities` on a redeploy to preserve `sample`, omit `icon`, and keep the
-`<title>` as "Chess Coach". Store the private Artifact URL outside this repository.
+Run `npm run build`, then publish `dist/artifact.html`. Update the existing private Artifact rather
+than creating a new public link. Omit `capabilities` on a redeploy to preserve `sample`, omit `icon`,
+and keep the `<title>` as "Chess Coach". Store the private Artifact URL outside this repository.
 
 ## Ideas not built yet
 
