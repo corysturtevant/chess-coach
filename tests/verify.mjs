@@ -48,6 +48,7 @@ for (const style of ['classic', 'aether', 'neon', 'wildwood', 'spell']) {
 check(js.includes("localStorage.getItem('chesscoach.boardStyle')") && js.includes("localStorage.setItem('chesscoach.boardStyle',s)"), 'board style persists locally');
 check(js.includes("document.documentElement.setAttribute('data-board-style',boardStyle)"), 'selected board style is applied to the document');
 check(js.includes("className='pc '+p.color+' '+(boardStyle==='classic'?'glyph':'sprite')"), 'custom themes render illustrated piece sprites');
+check(html.includes(':root:not([data-board-style="classic"]) .sq{background:transparent;overflow:visible}'), 'illustrated pieces can extend above their square without clipping');
 check(html.includes('data-coach-prompt="What is the threat?"'), 'coach includes suggested question chips');
 check(html.includes('id="coachOpening"') && html.includes('id="coachWatchBlock"'), 'coach card includes opening and watch-for context');
 check(js.includes('moveGrades.push({ply,assessment:moveGrade.assessment})') && html.includes('sheet-grade'), 'scoresheet records move grades');
