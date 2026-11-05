@@ -272,7 +272,7 @@ body{font-size:16px;padding:0}.wrap{display:flex;padding:0;gap:0}.topbar{min-hei
 :root[data-mode="lesson"] #lessonTask{font:400 17px/1.55 var(--f-body)}
 :root[data-mode="lesson"] #lessonCard>.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 :root[data-mode="lesson"] #lessonCard .btn{padding:0 10px}
-:root[data-mode="lesson"] #sheet,:root[data-mode="lesson"] #boardActions,:root[data-mode="lesson"] .match-summary,:root[data-mode="lesson"] #settingsSummary{display:none}
+:root[data-mode="lesson"] #sheet,:root[data-mode="lesson"] #boardActions,:root[data-mode="lesson"] .match-summary{display:none}
 :root[data-mode="lesson"] #log:empty{display:none}
 :root[data-mode="lesson"] #log{border-top:1px solid var(--hairline);padding-top:18px}
 :root[data-mode="lesson"] .msg.turn-summary{white-space:normal;opacity:1}
@@ -346,7 +346,7 @@ body{font-size:16px;padding:0}.wrap{display:flex;padding:0;gap:0}.topbar{min-hei
 
   <div class="app">
     <div class="col board-col">
-      <div class="statusbar"><button class="btn lesson-details" id="lessonDetailsBtn" aria-controls="coachPanel" aria-expanded="false">Lesson details</button><span class="match-summary" id="matchSummary"></span><button class="settings-summary" id="settingsSummary">Change</button>
+      <div class="statusbar"><button class="btn lesson-details" id="lessonDetailsBtn" aria-controls="coachPanel" aria-expanded="false">Lesson details</button><span class="match-summary" id="matchSummary"></span>
         <div id="status" class="status" aria-live="polite"><span class="dotlive"></span><span id="statusText">Your move</span></div>
         <div class="row">
           <button class="btn" id="stopBtn" hidden>Stop thinking</button>
@@ -1190,7 +1190,7 @@ function closeSettings(){
   document.querySelector('.wrap').inert=false;$('openCoachBtn').inert=false;
   $('settingsBackdrop').hidden=true;$('settingsBtn').setAttribute('aria-expanded','false');$('settingsBtn').focus();
 }
-$('settingsBtn').onclick=openSettings;$('settingsSummary').onclick=openSettings;$('settingsCloseBtn').onclick=closeSettings;$('settingsDoneBtn').onclick=closeSettings;
+$('settingsBtn').onclick=openSettings;$('settingsCloseBtn').onclick=closeSettings;$('settingsDoneBtn').onclick=closeSettings;
 $('settingsBackdrop').addEventListener('click',e=>{if(e.target===$('settingsBackdrop'))closeSettings()});
 $('settingsDrawer').addEventListener('keydown',e=>{
   if(e.key==='Escape'){e.preventDefault();closeSettings();return}
