@@ -8,9 +8,11 @@
     "test": "node tests/verify.mjs && node tests/server.mjs",
     "build": "node scripts/build-preview.mjs",
     "preview": "node scripts/build-preview.mjs",
-    "start": "npm run build && node --env-file-if-exists=.env scripts/serve.mjs"
+    "start": "npm run build && node --env-file-if-exists=.env scripts/serve.mjs",
+    "test:ui": "npm run build && node tests/ui.mjs"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "chess.js": "0.10.3"
   },
   "dependencies": {

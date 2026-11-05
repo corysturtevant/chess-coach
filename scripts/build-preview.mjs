@@ -5,7 +5,7 @@ import { copyFileSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 const source = readFileSync(new URL('../src/chess-coach.html', import.meta.url), 'utf8');
 const body = source
   .replace('https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.js', './vendor/chess.js');
-const appHead = `<meta name="theme-color" content="#2c6a4c">
+const appHead = `<meta name="theme-color" content="#f5f6ee">
 <meta name="apple-mobile-web-app-title" content="Chess Coach">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -28,7 +28,7 @@ copyFileSync(new URL('../src/manifest.webmanifest', import.meta.url), new URL('.
 for (const icon of ['apple-touch-icon.png', 'favicon-32.png', 'icon-192.png', 'icon-512.png']) {
   copyFileSync(new URL(`../src/icons/${icon}`, import.meta.url), new URL(`../dist/icons/${icon}`, import.meta.url));
 }
-const boardAssets=['aether-board.webp','aether-pieces-v2.png','neon-board.webp','neon-pieces-v2.png','wildwood-board.webp','wildwood-pieces-v2.png','spell-board.webp','spell-pieces-v2.png'];
+const boardAssets=['chalkboard-board.png','chalkboard-pieces-v2.png','aether-board.webp','aether-pieces-v2.png','neon-board.webp','neon-pieces-v2.png','wildwood-board.webp','wildwood-pieces-v2.png','spell-board.webp','spell-pieces-v2.png'];
 let artifact=source;
 for(const asset of boardAssets){
   const input=new URL(`../src/board-styles/${asset}`,import.meta.url);

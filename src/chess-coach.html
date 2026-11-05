@@ -1,6 +1,6 @@
 <title>Chess Coach</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:wght@400..800&family=Alegreya+Sans:wght@400;700;800&family=Cinzel+Decorative:wght@700&family=Crimson+Pro:wght@400..700&family=Exo+2:wght@400..700&family=Fraunces:opsz,wght@9..144,400..700&family=Lato:wght@400;700;900&family=Marcellus&family=Nunito+Sans:wght@400..800&family=Orbitron:wght@500..800&display=swap">
+<link id="themeFonts" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&amp;family=Nunito+Sans:wght@400..800&amp;display=swap">
 <style>
 /* Layout: tournament-vinyl board on the left, coach's scoresheet + conversation on the right; stacks on phones. */
 :root{
@@ -221,17 +221,110 @@ button.btn{min-height:44px;padding:0 18px;border-radius:var(--button-radius);bac
 .prompt-chips{display:flex;gap:8px;flex-wrap:wrap}.prompt-chip{min-height:36px;padding:0 14px;border:1px solid var(--hairline);border-radius:var(--button-radius);background:var(--paper);color:var(--ink);font:600 14px var(--f-body);cursor:pointer}.sheet-move{display:flex;align-items:center;gap:7px;min-width:0}.sheet-grade{display:inline-block;width:22px;height:5px;border-radius:999px;background:var(--sheet-grade);flex:0 0 auto}
 select,textarea{border-color:var(--hairline);background:var(--paper);font-family:var(--f-body)}
 @media (prefers-reduced-motion:reduce){.grade-marker{transition:none}}
-@media (min-width:1251px){.board-col{position:sticky;top:20px;align-self:start}}
-@media (min-width:900px) and (max-width:1250px),(min-width:900px) and (max-width:1400px) and (min-height:900px){
-  body{padding:20px}.wrap{display:grid;grid-template-columns:minmax(0,1fr) 390px;grid-template-rows:auto 1fr;gap:16px 24px}.topbar{grid-column:2;grid-row:1;padding:0;min-height:64px;border:0}.brand{min-width:0}.brand-mark{width:40px;height:40px}.brand h1{font-size:28px}.brand .sub{display:none}.topbar .tabs{position:absolute;top:84px;right:20px;width:390px}.header-actions #newTopBtn{font-size:0;width:44px;padding:0}.header-actions #newTopBtn::after{content:"+";font-size:24px}.app{display:contents}.board-col{grid-column:1;grid-row:1/3;max-width:none;gap:8px}.app>.col:not(.board-col){grid-column:2;grid-row:2;padding-top:60px;gap:14px;min-width:0}.board-frame{width:min(calc(100vh - 100px),calc(100vw - 438px));max-width:100%}.board-col .plan{display:none}.board-actions{justify-content:center}.copy-action{display:none}.move-cards{grid-template-columns:1fr;gap:14px}.grade-card,.coach-card{min-height:0;padding:18px}.grade-card p,.grade-best,.grade-labels{display:none}.grade-result strong{font-size:30px}.coach-move-title strong{font-size:44px}.scoresheet-panel{display:none}.app>.col:not(.board-col)>.panel:last-child .log{max-height:150px}.board-meta .settings-summary{display:none}
-}
-@media (max-width:899px){
-  .topbar{min-height:82px;padding:14px 16px;border:0}.brand{min-width:0}.brand-mark{width:42px;height:42px}.brand .sub{display:none}.header-actions #newTopBtn{display:none}.topbar>.tabs{order:3;width:100%}.tab{flex:1;padding-inline:12px}.app{padding:20px 16px 120px;grid-template-columns:1fr;gap:24px}.board-col{gap:14px}.board-meta{display:none}.statusbar{display:none}.coach-notice{font-size:15px}.board-frame{width:100%}.board-footer,.board-actions .copy-action,.board-actions #reviewBtn{display:none}.board-actions{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:12px max(16px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));background:color-mix(in srgb,var(--paper) 94%,transparent);backdrop-filter:blur(12px);border-top:1px solid var(--hairline)}.board-actions .btn{flex:1;justify-content:center}.move-cards{grid-template-columns:1fr;gap:20px}.grade-card{min-height:0;padding:20px}.grade-labels{display:none}.grade-card p{font-size:16px}.grade-best{display:none}.coach-card{padding:24px}.coach-move-title strong{font-size:46px}.scoresheet-panel{display:none}.plan{display:none}.app>.col:not(.board-col)>.panel:last-child{margin-top:0}.lessons{grid-template-columns:repeat(2,minmax(0,1fr))}.settings-drawer{padding:22px 18px}.coach-card-actions{display:none}
-}
-@media (max-width:430px){.brand h1{font-size:27px}.grade-result{align-items:flex-end}.grade-result strong{font-size:32px}.grade-result span{font-size:13px}.coach-notice{padding:12px}.coach-card{min-height:250px}.lessons{grid-template-columns:1fr}}
-@media (max-width:430px){:root:not([data-board-style="classic"]){--board-art:none;--grid-left:0%;--grid-top:0%;--grid-width:100%;--grid-height:100%}:root:not([data-board-style="classic"]) .sq{background:var(--sq-light)}:root:not([data-board-style="classic"]) .sq.dk{background:var(--sq-dark)}}
 </style>
 
+<style>
+/* v2: a dominant board and one continuous coach surface. */
+[hidden]{display:none!important}
+:root{--coach-surface:var(--card)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"])[data-board-style="classic"]{--card:#1a1e24}}
+:root[data-theme="dark"][data-board-style="classic"]{--card:#1a1e24}
+body{font-size:16px;padding:0}.wrap{display:flex;padding:0;gap:0}.topbar{min-height:76px;padding:14px 32px}.brand{min-width:0}.brand h1{font-size:30px}.brand .sub{display:none}.brand-mark{width:36px;height:36px}.tabs{background:none;border-radius:0;padding:0;gap:24px}.tab{padding:0 2px;border-radius:0;min-height:44px;border-bottom:2px solid transparent!important}.tab[aria-selected="true"]{background:none;color:var(--ink);border-bottom-color:var(--teal)!important}.header-actions #newTopBtn{display:block;width:auto;font-size:15px;background:none;color:var(--ink);border-color:var(--hairline)}.header-actions #newTopBtn::after{content:none}.topbar .tabs{position:static;width:auto}
+.app{display:grid;max-width:1324px;padding:28px;grid-template-columns:minmax(0,840px) 400px;gap:28px;align-items:stretch}.board-col{width:100%;max-width:none;gap:14px;margin:0;grid-column:auto;grid-row:auto}.board-frame{width:100%;max-width:100%;flex-shrink:0}/* Keep rank z-indices inside the board, below the sibling arrow overlay. */
+.board{border-radius:0;overflow:visible;isolation:isolate}.pc{font-size:9.6cqi;pointer-events:none}.pc.sprite{pointer-events:none}.sq .co{color:#5c5651;font-weight:800;font-size:1.9cqi;opacity:1}.sq.dk .co{color:#fbf9f6}.sq.last:not(.coach-last)::before{background:color-mix(in srgb,var(--teal) 22%,transparent)}.sq.coach-last::before{background:color-mix(in srgb,var(--orange) 36%,transparent)}
+.statusbar{display:flex;flex-wrap:wrap;gap:6px 8px;min-height:32px;font-size:14px}.status{order:-2;white-space:nowrap}.status .dotlive{background:var(--status-success)}.match-summary{order:-1;color:var(--muted);flex:1}.settings-summary{border:0;padding:0 4px;min-height:44px;color:var(--teal);background:none}.statusbar>.row:not(:has(button:not([hidden]))){display:none}.coach-strip{display:none}.coach-notice,.why-button{display:none!important}.board-footer{display:none}.board-actions{position:static;padding:0;display:flex;flex-wrap:nowrap;border:0;background:none;backdrop-filter:none;gap:8px;justify-content:start}.board-actions .btn,.board-actions #reviewBtn{display:flex;flex:0 1 auto;padding:0 16px;justify-content:center;gap:8px}.btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}.more-actions{margin-left:auto;position:relative}.more-actions summary{list-style:none}.more-actions summary::-webkit-details-marker{display:none}.more-actions>div{position:absolute;right:0;bottom:52px;background:var(--card);border:1px solid var(--hairline);border-radius:12px;padding:8px;z-index:25;min-width:150px}
+.sheet{display:flex;align-items:center;gap:10px;max-height:none;min-height:44px;overflow-x:auto;white-space:nowrap;background:var(--paper-raised);padding:8px 12px;border-radius:12px;flex-shrink:0}.sheet .n{margin-left:6px}.sheet-move{display:flex;align-items:center;gap:4px}.sheet-grade{width:7px;height:7px;border-radius:50%;background:var(--sheet-grade)}.sheet .latest{background:color-mix(in srgb,var(--ink) 7%,transparent);border-radius:5px;padding:2px 6px}.sheet .coach-reply{color:var(--orange-text)}
+.app>.coach-panel{display:flex;grid-column:auto;grid-row:auto;padding:0;gap:0;min-width:0;border:1px solid var(--hairline);border-radius:var(--ui-radius);background:var(--card);overflow:hidden;min-height:600px;max-height:1030px}.coach-heading{padding:20px 22px 10px;display:flex;align-items:center;justify-content:space-between}.coach-heading h2{font:560 26px var(--f-display);margin:0}#closeCoachBtn{display:none}.coach-feed{flex:1;min-height:0;overflow:auto;padding:14px 22px 24px;display:flex;flex-direction:column;gap:18px}.coach-feed #playPanel{gap:0}.move-cards{display:flex;flex-direction:column;gap:14px}.grade-card,.coach-card{position:relative;min-height:0;padding:18px;border:0;border-radius:16px;background:var(--paper-raised);box-shadow:none;gap:12px}.grade-card{display:grid;grid-template-columns:1fr auto}.grade-heading{font-size:14px;gap:5px;justify-content:flex-start}.grade-heading strong{font-size:16px}.grade-result{grid-column:2;grid-row:1;display:flex;align-items:center;gap:5px;flex-wrap:wrap}.grade-result strong{font:700 15px var(--f-body);text-transform:capitalize}.grade-result span{font-size:11px;max-width:100px}.grade-spectrum{grid-row:2;grid-column:1/-1;margin:4px 0;padding-top:0}.grade-segments{height:6px;gap:3px}.grade-segments i{height:6px}.grade-marker{width:14px;height:14px;top:-4px;border-width:4px}.grade-labels,.grade-best{display:none!important}.grade-card p{display:block;margin:0;font-size:15px;line-height:1.55;grid-column:1/-1}.grade-card.awaiting{display:block;background:none;padding:4px 0}.awaiting .grade-heading,.awaiting .grade-result,.awaiting #gradeFeedback{display:none}.awaiting .grade-spectrum{opacity:.4}.coach-card{display:block;color:var(--ink);border-left:3px solid var(--orange)}.coach-card>.eyebrow{display:inline}.coach-move-title{display:inline}.coach-move-title strong{color:var(--ink);font:700 17px var(--f-body);margin-left:4px}.coach-move-title span{border:0;padding:0;float:right;font-size:12px;margin-top:3px;color:var(--orange-text)}.coach-card p{font-size:15px;line-height:1.6;margin:12px 0 0}.coach-card>div>.eyebrow{display:none}#coachWatchBlock .eyebrow{display:inline;font-weight:700;color:var(--ink);letter-spacing:0;text-transform:none}#coachWatchBlock{margin-top:10px}#coachWatch::before{content:" "}#coachWatch{display:inline;color:var(--muted)}.coach-opening{font-size:13px!important}.coach-card-actions{display:none}.plan,.board-col .plan{display:flex;border:0;border-radius:0;box-shadow:none;padding:0;background:none;gap:8px}.plan .note{display:none}.planlist{font-size:15px;gap:4px}.planlist li::marker{color:var(--muted)}
+.log{max-height:none;overflow:visible;padding:0;gap:8px}.msg{background:none;padding:0;border-radius:0;font-size:14px}.msg.you{border:0}.msg .who{font-size:11px;text-transform:none}.msg:not(.you) .who:not(:has(.chip)){display:none}.msg.turn-summary{display:block;opacity:.7;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.turn-summary .who{display:none}.turn-summary .body{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.msg.sys{font-size:12px}.ask-dock{padding:12px 14px;border-top:1px solid var(--hairline);flex-shrink:0}.ask{align-items:center}.ask textarea{height:44px;min-height:44px;max-height:120px;resize:none;border:1px solid var(--field);border-radius:var(--button-radius);padding:11px 14px;background:var(--paper)}.ask .btn{height:44px}.prompt-chips{display:none;margin-bottom:10px}.ask-dock:focus-within .prompt-chips{display:flex}.eyebrow{text-transform:uppercase;font-size:11px;letter-spacing:.09em}.floating-coach,.coach-scrim{display:none}
+.settings-drawer{width:min(460px,100%);padding:24px;display:flex;flex-direction:column;gap:22px}.settings-drawer fieldset{margin:0;padding:0;border:0}.settings-drawer legend{margin-bottom:12px}.layout-options{display:grid;grid-template-columns:1fr 1fr;gap:10px}.layout-options button{border:1px solid var(--hairline);border-radius:12px;background:var(--card);color:var(--ink);font:700 14px var(--f-body);padding:14px;cursor:pointer}.layout-options [aria-checked="true"]{border:2px solid var(--teal);padding:13px}.layout-diagram{display:block;height:56px;width:80px;border:1px solid var(--muted);border-radius:5px;margin:0 auto 10px;background:repeating-conic-gradient(var(--paper-raised) 0% 25%,var(--hairline) 0% 50%) 0/14px 14px}.layout-diagram.with-panel{border-right:24px solid var(--hairline)}.style-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.style-choice{display:flex;flex-direction:column;gap:6px;padding:6px 2px;min-width:0;border-radius:10px}.style-choice .style-preview{width:48px;height:48px;border-radius:7px}.style-copy strong{font-size:11px;white-space:normal;text-align:center}.style-copy small,.style-radio{display:none}.theme-options button{min-height:44px}.drawer-fields{display:flex;flex-direction:column;gap:0}.drawer-fields .fld{display:grid;grid-template-columns:115px minmax(0,1fr);align-items:center;border-bottom:1px solid var(--hairline);padding:10px 0;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink)}.drawer-fields select{width:100%;min-height:44px;border:0;background:var(--paper-raised)}.settings-drawer h3,.settings-drawer p{margin:0}.about summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--muted);font-size:14px}.drawer-actions{margin-top:auto}.square-grade{position:absolute;right:0;top:0;z-index:12;padding:2px 5px;border-radius:5px;color:#111;font:700 clamp(8px,1.4cqi,12px) var(--f-body);text-transform:capitalize;pointer-events:none}
+@media(min-width:900px) and (max-width:1400px) and (orientation:landscape){
+ .app{max-width:none;padding:16px;gap:20px;grid-template-columns:minmax(0,1fr) minmax(350px,400px);height:100dvh}.board-col{gap:10px;justify-content:start}.board-frame{width:min(100%,calc(100dvh - 82px));align-self:center}.app>.coach-panel{min-height:0;max-height:none;height:100%}.coach-panel .topbar{padding:18px 20px 0;border:0;min-height:0;gap:12px;background:none}.coach-panel .brand{gap:8px;flex:1}.coach-panel h1{font-size:24px}.coach-panel .brand-mark{width:32px;height:32px}.coach-panel .header-actions{gap:6px}.coach-panel .header-actions #newTopBtn{padding:0 12px;font-size:13px}.coach-panel .topbar>.tabs{width:100%;padding-top:6px;order:2}.coach-panel .header-actions{order:1}.coach-panel h1{font-size:22px}.coach-heading{display:none}.coach-feed{padding:16px;gap:14px}.coach-panel>.sheet{margin:14px 16px 0}.ask-dock .board-actions{margin-top:10px}.board-actions .btn{min-height:50px;padding:0 13px}.board-actions .icon-btn{width:50px;height:50px}.statusbar{font-size:13px}.status{font-size:13px}.grade-card,.coach-card{padding:16px}.plan{display:none}
+}
+@media(min-width:1280px) and (max-width:1400px) and (orientation:landscape){.app{grid-template-columns:minmax(0,1fr) 400px}.board-frame{width:min(100%,calc(100dvh - 132px))}.plan{display:flex}}
+@media(max-width:899px){.topbar{padding:14px 16px;gap:12px;flex-wrap:wrap}.topbar>.tabs{width:100%;justify-content:center;order:3}.header-actions #newTopBtn{display:block}.brand h1{font-size:22px}.brand-mark{width:30px;height:30px}.brand{gap:8px}.header-actions{gap:6px}.header-actions #newTopBtn{font-size:12px;padding:0 12px}.tab{flex:0 1 auto;min-width:80px}.app{display:grid;padding:8px 16px 32px;grid-template-columns:minmax(0,1fr);gap:24px}.board-col{gap:10px}.board-frame{width:100%}.statusbar{display:flex;font-size:12px}.status{font-size:13px}.match-summary{font-size:11px}.app>.coach-panel{padding:0;min-height:460px;max-height:700px}.coach-feed{padding:16px}.board-actions .btn,.board-actions #reviewBtn{display:flex;padding:0 12px;font-size:14px}.board-actions .btn{min-height:44px}.plan{display:flex}.lessons{grid-template-columns:1fr}.settings-drawer{padding:20px 16px}.coach-heading{padding:18px 16px 0}}
+@media(max-width:380px){.brand h1{font-size:21px}.brand-mark{width:28px;height:28px}.topbar{padding:12px;gap:8px}.header-actions{gap:5px}.header-actions #newTopBtn{padding:0 10px;font-size:12px}.board-actions .btn,.board-actions #reviewBtn{padding:0 8px;font-size:12px;gap:4px}}
+:root[data-layout="board"] .app{display:block;max-width:836px}:root[data-layout="board"] .board-col{max-width:780px;margin:auto}:root[data-layout="board"] .coach-strip:has(.coach-notice:not([hidden])){display:flex;flex-direction:row-reverse;align-items:center;gap:12px}:root[data-layout="board"] .coach-notice:not([hidden]){display:block!important;flex:1;min-width:0;border:0;background:none;padding:0;font-size:14px}:root[data-layout="board"] .coach-notice::before{display:none}:root[data-layout="board"] .coach-notice .note{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}:root[data-layout="board"] .why-button{display:block!important;align-self:flex-end;min-height:44px}:root[data-layout="board"] .floating-coach{display:block;position:fixed;bottom:24px;right:24px;z-index:30;box-shadow:var(--shadow-card)}:root[data-layout="board"] .app>.coach-panel{display:none}:root[data-layout="board"].coach-open .app>.coach-panel{display:flex;position:fixed;right:20px;top:20px;bottom:20px;width:min(420px,calc(100vw - 40px));height:auto;min-height:0;max-height:none;z-index:42;box-shadow:var(--shadow-card)}:root[data-layout="board"].coach-open .coach-heading{display:flex}:root[data-layout="board"] #closeCoachBtn{display:grid}:root[data-layout="board"].coach-open .coach-scrim{display:block;position:fixed;inset:0;background:#0005;z-index:41}:root[data-layout="board"].coach-open{overflow:hidden}:root[data-layout="board"] .app{height:auto}:root[data-layout="board"] .board-frame{width:100%}
+@media(max-width:899px){:root[data-layout="board"] .app{padding-bottom:100px}:root[data-layout="board"].coach-open .app>.coach-panel{top:auto;bottom:0;right:0;left:0;width:100%;height:min(60dvh,480px);border-radius:24px 24px 0 0}:root[data-layout="board"] .coach-heading::before{content:"";position:absolute;top:6px;left:calc(50% - 20px);width:40px;height:4px;border-radius:4px;background:var(--hairline)}:root[data-layout="board"] .floating-coach{bottom:max(20px,env(safe-area-inset-bottom));right:16px}}
+
+</style>
+
+<style>
+/* Lesson discovery is separate from the focused practice sidebar. */
+.lesson-details{display:none}
+:root[data-layout="board"][data-mode="lesson"] .lesson-details{display:block;margin-left:auto;order:1}
+
+.lesson-browser{width:min(860px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 48px);padding:0;border:1px solid var(--hairline);border-radius:var(--ui-radius);background:var(--paper);color:var(--ink);box-shadow:var(--shadow-card);overflow:hidden}
+.lesson-browser[open]{display:flex;flex-direction:column}
+.lesson-browser::backdrop{background:rgba(0,0,0,.5)}
+.lesson-browser-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:24px;border-bottom:1px solid var(--hairline);flex-shrink:0}
+.lesson-browser-head h2{margin:4px 0 6px;font:560 30px/1.2 var(--f-display)}
+.lesson-browser-head p{margin:0}.lesson-browser-head .icon-btn{flex-shrink:0}
+.lesson-browser-content{overflow-y:auto;overscroll-behavior:contain;padding:20px 24px 24px;min-height:0}
+.lesson-browser .lesson-filters{flex-wrap:wrap;overflow:visible;gap:8px;margin-bottom:20px}
+.lesson-browser .lesson-filter{min-height:44px}
+.lesson-browser .lessons{grid-template-columns:repeat(3,minmax(0,1fr));max-height:none;overflow:visible;padding:0;gap:12px}
+.lesson-browser .lesson{min-height:112px;padding:14px;gap:6px;border-radius:12px}
+#chooseLessonBtn{display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left}
+:root[data-mode="lesson"] #lessonPanel{order:-1;gap:16px}
+:root[data-mode="lesson"] #lessonPanel>.panel{border:0;box-shadow:none;background:none;padding:0}
+:root[data-mode="lesson"] #lessonCard{border-top:1px solid var(--hairline)!important;padding-top:20px!important}
+:root[data-mode="lesson"] #lessonTitle{font-size:27px;line-height:1.2}
+:root[data-mode="lesson"] #lessonTask{font:400 17px/1.55 var(--f-body)}
+:root[data-mode="lesson"] #lessonCard>.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+:root[data-mode="lesson"] #lessonCard .btn{padding:0 10px}
+:root[data-mode="lesson"] #sheet,:root[data-mode="lesson"] #boardActions,:root[data-mode="lesson"] .match-summary,:root[data-mode="lesson"] #settingsSummary{display:none}
+:root[data-mode="lesson"] #log:empty{display:none}
+:root[data-mode="lesson"] #log{border-top:1px solid var(--hairline);padding-top:18px}
+:root[data-mode="lesson"] .msg.turn-summary{white-space:normal;opacity:1}
+:root[data-mode="lesson"] .turn-summary .body{white-space:pre-wrap;overflow:visible}
+@media(max-width:650px){.lesson-browser .lessons{grid-template-columns:repeat(2,minmax(0,1fr))}.lesson-browser-head{padding:20px 16px}.lesson-browser-content{padding:16px}.lesson-browser-head h2{font-size:26px}}
+@media(max-width:380px){.lesson-browser .lessons{grid-template-columns:1fr}}
+</style>
+<style>
+/* Chalkboard: generated slate grain beneath a precise, playable green/white grid. */
+:root[data-board-style="chalkboard"]{--paper:#f5f6ee;--paper-raised:#e6eadc;--card:#fafbf5;--ink:#173c2d;--muted:#4e6455;--teal:#285d43;--on-blue:#fffef3;--orange:#b54a22;--orange-text:#963619;--hairline:#ccd7c7;--field:#8b9f8a;--status-success:#28603c;--f-display:"Caveat",cursive;--f-body:"Nunito Sans",system-ui,sans-serif;--ui-radius:16px;--button-radius:12px;--board-radius:8px;--board-art:url('/board-styles/chalkboard-board.png');--grid-left:2%;--grid-top:2%;--grid-width:96%;--grid-height:96%;--sq-light:#e9eddb;--sq-dark:#285b43;--dot:rgba(15,45,30,.45)}
+@media(prefers-color-scheme:dark){:root[data-board-style="chalkboard"]:not([data-theme="light"]){--paper:#112b23;--paper-raised:#203e32;--card:#183329;--ink:#f4f5e8;--muted:#b6c8b7;--teal:#bbd9ad;--on-blue:#132d22;--orange:#e6af73;--orange-text:#f0c391;--hairline:#365444;--field:#718d74;--status-success:#b7d9a5}}
+:root[data-board-style="chalkboard"][data-theme="dark"]{--paper:#112b23;--paper-raised:#203e32;--card:#183329;--ink:#f4f5e8;--muted:#b6c8b7;--teal:#bbd9ad;--on-blue:#132d22;--orange:#e6af73;--orange-text:#f0c391;--hairline:#365444;--field:#718d74;--status-success:#b7d9a5}
+:root[data-board-style="chalkboard"] .coach-opening{font-size:22px!important;font-weight:600;font-style:normal;line-height:1.3}
+:root[data-board-style="chalkboard"] .board-frame{box-shadow:0 0 0 1px #54745b,inset 0 0 0 3px #b7c7a73d,0 10px 30px #08190f26}
+:root[data-board-style="chalkboard"] .sq{background:rgba(245,247,229,.9);box-shadow:inset 0 0 0 .5px #edf1dd38}
+:root[data-board-style="chalkboard"] .sq.dk{background:transparent}
+:root[data-board-style="chalkboard"] .pc.sprite{left:0;top:0;width:100%;height:100%;filter:none}
+:root[data-board-style="chalkboard"] .pc.sprite img{margin-left:var(--chalk-offset,0%)}
+:root[data-board-style="chalkboard"] .sq .co{color:#294b36}
+:root[data-board-style="chalkboard"] .sq.dk .co{color:#f3f5e4}
+:root[data-board-style="chalkboard"] .sq.coach-to{box-shadow:inset 0 0 0 4px var(--orange)}
+.style-preview.chalkboard{background:conic-gradient(#e9eddb 25%,#285b43 0 50%,#e9eddb 0 75%,#285b43 0);background-size:24px 24px;border:3px solid #285b43}
+</style>
+<style>
+/* Desktop fits the available viewport, including the controls below the board. */
+@media(min-width:1401px){
+  .wrap{height:100dvh;min-height:0}
+  .wrap>.topbar{flex:0 0 76px;min-height:76px}
+  .app{--desktop-board:min(calc(100dvh - 284px),calc(100vw - 464px));flex:1;min-height:0;width:100%;max-width:none;height:auto;padding:20px;grid-template-columns:minmax(0,var(--desktop-board)) 400px;gap:24px;justify-content:center}
+  .board-col{min-height:0;gap:12px}
+  .board-frame{width:100%;max-height:100%;aspect-ratio:1}
+  .app>.coach-panel{height:100%;min-height:0;max-height:none}
+  .coach-heading,.coach-panel>.topbar{flex-shrink:0}
+  .coach-feed{overscroll-behavior:contain}
+  :root[data-layout="board"] .app{display:grid;grid-template-columns:minmax(0,min(780px,max(440px,calc(100dvh - 354px)),calc(100vw - 40px)));max-width:none;height:auto;align-items:start}
+  :root[data-layout="board"] .board-col{width:100%;max-width:none}
+  :root[data-layout="board"] .board-frame{width:min(100%,calc(100dvh - 354px));align-self:center}
+}
+</style>
+<style>
+/* Current position first; history expands into the same, single scrolling feed. */
+.coach-feed>*{flex-shrink:0}
+.coach-feed #planPanel{display:flex}
+.coach-feed .move-cards>*{flex-shrink:0}
+.coach-history{border-top:1px solid var(--hairline);padding-top:8px}
+.coach-history summary{min-height:44px;cursor:pointer;color:var(--muted);font-weight:700;font-size:14px;display:list-item;list-style-position:inside}
+.coach-history summary span{font-weight:400}
+.coach-history .log{padding-top:12px}
+.coach-history .msg{padding:8px 0;border-bottom:1px solid var(--hairline)}
+.coach-history .turn-summary,.coach-history .turn-summary .body{white-space:normal;overflow:visible;text-overflow:clip}
+#log:not(:empty){border-top:1px solid var(--hairline);padding-top:16px}
+</style>
 <div class="wrap">
   <header class="topbar">
     <div class="brand">
@@ -242,7 +335,7 @@ select,textarea{border-color:var(--hairline);background:var(--paper);font-family
       </div>
     </div>
     <div class="tabs" role="tablist">
-      <button class="tab" role="tab" id="tabPlay" aria-selected="true">Play the coach</button>
+      <button class="tab" role="tab" id="tabPlay" aria-selected="true">Play</button>
       <button class="tab" role="tab" id="tabLessons" aria-selected="false">Lessons</button>
     </div>
     <div class="header-actions">
@@ -253,49 +346,39 @@ select,textarea{border-color:var(--hairline);background:var(--paper);font-family
 
   <div class="app">
     <div class="col board-col">
-      <div class="board-meta">
-        <span><strong>Coach</strong> · <span id="engineLabel">Stockfish</span> · <span id="levelLabel">Beginner</span></span>
-        <button class="settings-summary" id="settingsSummary" type="button">You play White · Thorough · Even game</button>
-      </div>
-      <div class="statusbar">
+      <div class="statusbar"><button class="btn lesson-details" id="lessonDetailsBtn" aria-controls="coachPanel" aria-expanded="false">Lesson details</button><span class="match-summary" id="matchSummary"></span><button class="settings-summary" id="settingsSummary">Change</button>
         <div id="status" class="status" aria-live="polite"><span class="dotlive"></span><span id="statusText">Your move</span></div>
         <div class="row">
           <button class="btn" id="stopBtn" hidden>Stop thinking</button>
           <button class="btn" id="coachMoveBtn" hidden>Coach's move</button>
         </div>
       </div>
-      <p class="coach-notice" id="coachNotice" role="status" aria-live="assertive" hidden></p>
+      <div class="coach-strip"><button class="btn why-button" id="whyBtn">Why?</button><p class="coach-notice" id="coachNotice" role="status" aria-live="assertive" hidden></p></div>
       <div class="board-frame">
         <div class="board-grid">
           <div class="board" id="board" role="grid" aria-label="Chessboard"></div>
           <svg class="move-arrow" id="moveArrow" viewBox="0 0 800 800" aria-hidden="true"></svg>
         </div>
       </div>
-      <div class="board-footer">
-        <span><strong>You</strong> · <span id="playerLabel">White</span></span>
-        <span class="board-legend" aria-label="Board legend"><span><i class="legend-coach"></i>Coach’s move</span><span><i class="legend-you"></i>Your last move</span></span>
-      </div>
-      <div class="board-actions">
-        <button class="btn" id="undoBtn">↶ <span>Take back</span></button>
-        <button class="btn" id="hintBtn">♧ <span>Hint</span></button>
-        <button class="btn" id="reviewBtn">⌕ <span>Review game</span></button>
-        <button class="btn copy-action" id="pgnBtn">▣ <span>Copy PGN</span></button>
+<div hidden><span id="playerLabel"></span><span id="levelLabel"></span><span id="engineLabel"></span></div>
+      <div class="sheet" id="sheet" aria-label="Game moves"></div>
+      <div class="board-actions" id="boardActions">
+        <button class="btn" id="undoBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5M4 9h9a7 7 0 0 1 7 7v3"/></svg><span>Undo</span></button>
+        <button class="btn" id="hintBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6m-5 3h4M8 14a6 6 0 1 1 8 0c-1 1-1 2-1 2H9s0-1-1-2Z"/></svg><span>Hint</span></button>
+        <button class="btn" id="reviewBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/></svg><span>Review</span></button>
+        <details class="more-actions" id="moreActions"><summary class="icon-btn" aria-label="More game actions">⋯</summary><div><button class="btn" id="pgnBtn">Copy PGN</button><button class="btn" id="resignBtn">Resign</button><div id="resignConfirm" hidden><p>End this game?</p><button class="btn" id="confirmResignBtn">Yes, resign</button><button class="btn" id="cancelResignBtn">Keep playing</button></div></div></details>
       </div>
       <div id="pgnOut" class="copybox" hidden></div>
-      <div class="panel plan" id="planPanel">
-        <div class="row" style="justify-content:space-between">
-          <span class="eyebrow">Your plan for the next few moves</span>
-          <span class="note" id="planSource"></span>
-        </div>
-        <ol class="planlist" id="planList"></ol>
-      </div>
+
     </div>
 
-    <div class="col">
+    <aside class="col coach-panel" id="coachPanel" aria-label="Coach">
+      <div class="coach-heading"><h2 id="coachPanelTitle">Coach</h2><button class="icon-btn" id="closeCoachBtn" aria-label="Close coach">×</button></div>
+      <div class="coach-feed" id="coachFeed">
       <section id="playPanel" class="col">
         <div class="move-cards">
           <article class="panel grade-card" id="gradeCard" role="img" aria-label="Move strength: waiting for your move">
-            <div class="grade-heading"><span class="eyebrow">Your move</span><strong id="gradeMove">—</strong></div>
+            <div class="grade-heading"><span class="eyebrow">You ·</span><strong id="gradeMove">—</strong></div>
             <div class="grade-spectrum" id="gradeSpectrum">
               <div class="grade-segments"><i></i><i></i><i></i><i></i><i></i></div>
               <div class="grade-marker" id="gradeMarker" hidden></div>
@@ -306,7 +389,7 @@ select,textarea{border-color:var(--hairline);background:var(--paper);font-family
             <div class="grade-best" id="gradeBest" hidden>Engine’s top choice <strong id="gradeBestMove"></strong></div>
           </article>
           <article class="coach-card" id="coachCard" hidden>
-            <span class="eyebrow">Coach played</span>
+            <span class="eyebrow">Coach ·</span>
             <div class="coach-move-title"><strong id="coachCardMove"></strong><span id="coachCardSquares"></span></div>
             <p class="coach-opening" id="coachOpening" hidden></p>
             <div><span class="eyebrow">Why</span><p id="coachCardWhy"></p></div>
@@ -314,13 +397,16 @@ select,textarea{border-color:var(--hairline);background:var(--paper);font-family
             <div class="coach-card-actions"><button class="btn" id="replayMoveBtn">Replay move</button><button class="btn coach-more" id="tellMoreBtn">Tell me more</button></div>
           </article>
         </div>
-        <div class="panel scoresheet-panel">
-          <div class="panel-heading"><h2>Scoresheet</h2><span class="note">Moves from this game</span></div>
-          <div class="sheet" id="sheet"></div>
-          <div id="pgnOutLegacy" hidden></div>
-        </div>
+
       </section>
 
+      <div class="panel plan" id="planPanel">
+        <div class="row" style="justify-content:space-between">
+          <span class="eyebrow">Your plan</span>
+          <span class="note" id="planSource"></span>
+        </div>
+        <ol class="planlist" id="planList"></ol>
+      </div>
       <section id="lessonPanel" class="col" hidden>
         <div class="panel">
           <div class="lesson-summary">
@@ -329,8 +415,7 @@ select,textarea{border-color:var(--hairline);background:var(--paper);font-family
             <span class="note" id="lessonProgressPct">0%</span>
             <div class="progress-track" style="grid-column:1/-1" role="progressbar" aria-label="Lesson progress" aria-valuemin="0" aria-valuemax="24" aria-valuenow="0"><div class="progress-fill" id="lessonProgressBar"></div></div>
           </div>
-          <div class="lesson-filters" id="lessonFilters" aria-label="Filter lessons"></div>
-          <div class="lessons" id="lessonList"></div>
+          <button class="btn" id="chooseLessonBtn" aria-haspopup="dialog" aria-controls="lessonBrowser">Choose lesson <span aria-hidden="true">→</span></button>
         </div>
         <div class="panel" id="lessonCard">
           <span class="eyebrow" id="lessonConcept"></span>
@@ -345,38 +430,48 @@ select,textarea{border-color:var(--hairline);background:var(--paper);font-family
         </div>
       </section>
 
-      <div class="panel">
-        <div class="row" style="justify-content:space-between">
-          <span class="eyebrow">Coach</span>
-          <span class="note" id="coachAvail"></span>
-        </div>
-        <div class="log" id="log" aria-live="polite"></div>
+      <div class="log" id="log" aria-live="polite"></div>
+      <details class="coach-history" id="coachHistory" hidden><summary>Earlier coaching <span id="historyCount"></span></summary><div class="log" id="historyLog"></div></details>
+      </div>
+      <div class="ask-dock" id="askDock">
         <div class="prompt-chips" aria-label="Suggested questions">
           <button class="prompt-chip" type="button" data-coach-prompt="What is the threat?">What is the threat?</button>
           <button class="prompt-chip" type="button" data-coach-prompt="What should I develop next?">What should I develop?</button>
           <button class="prompt-chip" type="button" data-coach-prompt="Explain the last move.">Explain the last move</button>
         </div>
         <form class="ask" id="askForm">
-          <textarea id="askInput" rows="2" placeholder="Ask about this position, e.g. “Why is castling early good?”"></textarea>
+          <textarea id="askInput" rows="1" aria-label="Ask the coach" placeholder="Ask about this position…"></textarea>
           <button class="btn primary" id="askBtn" type="submit">Ask</button>
         </form>
       </div>
-    </div>
+    </aside>
   </div>
 </div>
+<button class="btn primary floating-coach" id="openCoachBtn" aria-controls="coachPanel" aria-expanded="false">Ask the coach</button>
+<div class="coach-scrim" id="coachScrim" hidden></div>
 
+<dialog class="lesson-browser" id="lessonBrowser" aria-labelledby="lessonBrowserTitle">
+  <div class="lesson-browser-head"><div><span class="eyebrow">Your learning path</span><h2 id="lessonBrowserTitle">Choose a lesson</h2><p class="note">Practice one idea at a time. Pick up wherever you like.</p></div><button class="icon-btn" id="closeLessonBrowserBtn" aria-label="Close lesson browser">×</button></div>
+  <div class="lesson-browser-content">
+    <div class="lesson-filters" id="lessonFilters" aria-label="Filter lessons"></div>
+    <div class="lessons" id="lessonList"></div>
+  </div>
+</dialog>
 <div class="settings-backdrop" id="settingsBackdrop" hidden>
   <aside class="settings-drawer" id="settingsDrawer" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" tabindex="-1">
     <div class="drawer-head"><div><span class="eyebrow">Game setup</span><h2 id="settingsTitle">Settings</h2></div><button class="icon-btn" id="settingsCloseBtn" type="button" aria-label="Close settings">×</button></div>
-    <fieldset class="theme-field"><legend class="eyebrow">Appearance</legend><div class="theme-options" aria-label="Appearance"><button type="button" data-theme-choice="system">System</button><button type="button" data-theme-choice="light">Light</button><button type="button" data-theme-choice="dark">Dark</button></div></fieldset>
+
+    <fieldset class="layout-field"><legend class="eyebrow">Layout</legend><div class="layout-options" role="radiogroup" aria-label="Layout"><button type="button" role="radio" data-layout-choice="coach"><span class="layout-diagram with-panel"></span>Coach panel</button><button type="button" role="radio" data-layout-choice="board"><span class="layout-diagram"></span>Board only</button></div></fieldset>
     <fieldset class="style-field"><legend class="eyebrow">Board and pieces</legend><div class="style-options" role="radiogroup" aria-label="Board and piece style">
       <button class="style-choice" type="button" role="radio" data-board-choice="classic"><span class="style-preview classic" aria-hidden="true"></span><span class="style-copy"><strong>Classic</strong><small>Clean and familiar</small></span><span class="style-radio" aria-hidden="true"></span></button>
       <button class="style-choice" type="button" role="radio" data-board-choice="aether"><span class="style-preview aether" aria-hidden="true"></span><span class="style-copy"><strong>Aether Court</strong><small>Moonstone and sapphire</small></span><span class="style-radio" aria-hidden="true"></span></button>
       <button class="style-choice" type="button" role="radio" data-board-choice="neon"><span class="style-preview neon" aria-hidden="true"></span><span class="style-copy"><strong>Neon Orbit</strong><small>Porcelain and cyan</small></span><span class="style-radio" aria-hidden="true"></span></button>
       <button class="style-choice" type="button" role="radio" data-board-choice="wildwood"><span class="style-preview wildwood" aria-hidden="true"></span><span class="style-copy"><strong>Wildwood</strong><small>Birch and fern</small></span><span class="style-radio" aria-hidden="true"></span></button>
       <button class="style-choice" type="button" role="radio" data-board-choice="spell"><span class="style-preview spell" aria-hidden="true"></span><span class="style-copy"><strong>Spell &amp; Scale</strong><small>Wizards and dragons</small></span><span class="style-radio" aria-hidden="true"></span></button>
+      <button class="style-choice" type="button" role="radio" data-board-choice="chalkboard"><span class="style-preview chalkboard" aria-hidden="true"></span><span class="style-copy"><strong>Chalkboard</strong><small>Green slate and white chalk</small></span><span class="style-radio" aria-hidden="true"></span></button>
     </div></fieldset>
-    <div class="drawer-fields">
+    <fieldset class="theme-field"><legend class="eyebrow">Appearance</legend><div class="theme-options" aria-label="Appearance"><button type="button" data-theme-choice="system">Auto</button><button type="button" data-theme-choice="light">Light</button><button type="button" data-theme-choice="dark">Dark</button></div></fieldset>
+    <h3 class="eyebrow">Next game</h3><div class="drawer-fields">
       <label class="fld" for="colorSel">You play
         <select id="colorSel"><option value="w">White</option><option value="b">Black</option></select>
       </label>
@@ -387,16 +482,16 @@ select,textarea{border-color:var(--hairline);background:var(--paper);font-family
           <option value="club">Club · strongest play</option>
         </select>
       </label>
-      <label class="fld" for="engineSel">Chess engine
+      <label class="fld" for="engineSel">Opponent style
         <select id="engineSel">
           <option value="stockfish">Stockfish · calculated</option>
           <option value="maia">Maia 3 · human-like</option>
         </select>
       </label>
-      <label class="fld" for="tierSel">Coach mode
+      <label class="fld" for="tierSel">Coaching depth
         <select id="tierSel"><option value="quick">Fast</option><option value="default">Thorough</option><option value="deep">Deep review</option></select>
       </label>
-      <label class="fld" for="oddsSel">Coach handicap
+      <label class="fld" for="oddsSel">Handicap
         <select id="oddsSel">
           <option value="none">None (even game)</option>
           <option value="pawn">Pawn odds (no f-pawn)</option>
@@ -407,7 +502,8 @@ select,textarea{border-color:var(--hairline);background:var(--paper);font-family
         </select>
       </label>
     </div>
-    <div class="drawer-actions"><button class="btn primary" id="newBtn">Start new game</button><button class="btn" id="settingsCancelBtn" type="button">Cancel</button></div>
+    <details class="about"><summary>About</summary><p class="note" id="coachAvail"></p></details><p class="note">Layout and look change right away. Game options apply when you press New game in the header.</p>
+    <div class="drawer-actions"><button class="btn primary" id="settingsDoneBtn" type="button">Done</button></div>
   </aside>
 </div>
 
@@ -418,7 +514,7 @@ const $=id=>document.getElementById(id);
 const FILES='abcdefgh';
 const GLYPH={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
 const PIECE_COL={k:0,q:1,r:2,b:3,n:4,p:5};
-const PIECE_ART={aether:'/board-styles/aether-pieces-v2.png',neon:'/board-styles/neon-pieces-v2.png',wildwood:'/board-styles/wildwood-pieces-v2.png',spell:'/board-styles/spell-pieces-v2.png'};
+const PIECE_ART={chalkboard:'/board-styles/chalkboard-pieces-v2.png',aether:'/board-styles/aether-pieces-v2.png',neon:'/board-styles/neon-pieces-v2.png',wildwood:'/board-styles/wildwood-pieces-v2.png',spell:'/board-styles/spell-pieces-v2.png'};
 const VS='︎';
 const VAL={p:1,n:3,b:3,r:5,q:9,k:0};
 const LEVELS={
@@ -477,20 +573,29 @@ let sel=null, last=null, busy=false, ctl=null;
 let lastByCoach=false, coachAnimating=false, coachNotice=null, coachRevealTimer=null;
 let lessonIdx=0, lessonFilter='All', solved=new Set();
 let logItems=[];
+let presentedPosition=null;
 let sample=null, analyzer=null, sampleState='checking', coachSource='local';
 let plan=null; // {items:[...], src:'coach', ply:n} — valid while game.history().length===ply
 let odds='none', gameOdds='none'; // odds = selected for next game; gameOdds = what the current game was started with
 let moveGrade=null, lastCoach=null, moveGrades=[];
+let resigned=false;
 let themePreference='system';
-let boardStyle='classic';
+let boardStyle='chalkboard';
+let layoutPreference='coach';
+const checkedBoardArt=new Set();
+try{if(localStorage.getItem('chesscoach.layout')==='board')layoutPreference='board'}catch(e){}
 try{const t=localStorage.getItem('chesscoach.theme');if(['system','light','dark'].includes(t))themePreference=t}catch(e){}
-try{const s=localStorage.getItem('chesscoach.boardStyle');if(['classic','aether','neon','wildwood','spell'].includes(s))boardStyle=s}catch(e){}
+try{const s=localStorage.getItem('chesscoach.boardStyle');if(['classic','aether','neon','wildwood','spell','chalkboard'].includes(s))boardStyle=s}catch(e){}
 function applyTheme(){
+  const fonts={chalkboard:'Caveat:wght@500;600;700&family=Nunito+Sans:wght@400..800',classic:'Fraunces:opsz,wght@9..144,400..700&family=Nunito+Sans:wght@400..800',aether:'Marcellus&family=Lato:wght@400;700;900',neon:'Orbitron:wght@500..800&family=Exo+2:wght@400..700',wildwood:'Alegreya:wght@400..800&family=Alegreya+Sans:wght@400;700;800',spell:'Cinzel+Decorative:wght@700&family=Crimson+Pro:wght@400..700'};
+  const fontUrl='https://fonts.googleapis.com/css2?family='+fonts[boardStyle]+'&display=swap';
+  if($('themeFonts').href!==fontUrl)$('themeFonts').href=fontUrl;
   document.documentElement.setAttribute('data-board-style',boardStyle);
+  if(boardStyle!=='classic'&&!checkedBoardArt.has(boardStyle)){const style=boardStyle;checkedBoardArt.add(style);const image=new Image();image.onerror=()=>{if(boardStyle===style)setBoardStyle('classic')};image.src=getComputedStyle(document.documentElement).getPropertyValue('--board-art').trim().replace(/^url\(["']?|["']?\)$/g,'')}
   if(themePreference==='system')document.documentElement.removeAttribute('data-theme');
   else document.documentElement.setAttribute('data-theme',themePreference);
   const dark=themePreference==='dark'||(themePreference==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);
-  const themeColors={classic:['#fbf9f6','#14171c'],aether:['#f7f4ee','#12131a'],neon:['#f4f6f8','#0f1216'],wildwood:['#f6f2e9','#1c1510'],spell:['#f3f5fa','#160e0e']};
+  const themeColors={chalkboard:['#f5f6ee','#112b23'],classic:['#fbf9f6','#14171c'],aether:['#f7f4ee','#12131a'],neon:['#f4f6f8','#0f1216'],wildwood:['#f6f2e9','#1c1510'],spell:['#f3f5fa','#160e0e']};
   const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=themeColors[boardStyle][dark?1:0];
   document.querySelectorAll('[data-theme-choice]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.themeChoice===themePreference)));
   document.querySelectorAll('[data-board-choice]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.boardChoice===boardStyle)));
@@ -500,7 +605,7 @@ function setTheme(t){
   themePreference=t;try{localStorage.setItem('chesscoach.theme',t)}catch(e){}applyTheme();
 }
 function setBoardStyle(s){
-  if(!['classic','aether','neon','wildwood','spell'].includes(s))return;
+  if(!['classic','aether','neon','wildwood','spell','chalkboard'].includes(s))return;
   boardStyle=s;try{localStorage.setItem('chesscoach.boardStyle',s)}catch(e){}applyTheme();renderBoard();
 }
 applyTheme();
@@ -558,6 +663,7 @@ function basicPlan(){
     items.push('Find your least active piece and give it a better square.');
     items.push('Put your rooks on open files where they can reach the 7th rank.');
   }
+  if(!items.length)items.push('Before each move, check what your opponent is threatening.','Find your least active piece and give it a better square.','Look for a safe pawn break to challenge the center.');
   return items.slice(0,3);
 }
 function renderPlan(){
@@ -566,7 +672,7 @@ function renderPlan(){
   if(panel.hidden)return;
   const list=$('planList'); list.textContent='';
   let items, src;
-  if(game.game_over()){items=['The game is over. Tap “Review my game” to see the key moments.'];src=''}
+  if(game.game_over()||resigned){items=['The game is over. Tap “Review my game” to see the key moments.'];src=''}
   else if(game.turn()!==player){items=plan&&plan.ply===game.history().length+1?plan.items:['Wait for the coach’s reply. Your plan will update after it moves.'];src=busy?'Updating…':''}
   else if(plan&&plan.ply===game.history().length){items=plan.items;src='From the coach'}
   else{items=basicPlan();src=sample?'General principles':'General principles (coach offline)'}
@@ -575,10 +681,11 @@ function renderPlan(){
 }
 
 /* ---------- persistence (per-viewer convenience) ---------- */
-function save(){try{localStorage.setItem('chesscoach.v1',JSON.stringify({pgn:mode==='play'?game.pgn():(savedPlay&&savedPlay.pgn)||'',player,level,tier,opponentEngine,odds,gameOdds,solved:[...solved],plan,moveGrades}))}catch(e){}}
+function save(){try{localStorage.setItem('chesscoach.v1',JSON.stringify({pgn:mode==='play'?game.pgn():(savedPlay&&savedPlay.pgn)||'',player,level,tier,opponentEngine,odds,gameOdds,solved:[...solved],plan,moveGrades,resigned}))}catch(e){}}
 function restore(){
   try{
     const s=JSON.parse(localStorage.getItem('chesscoach.v1')||'null'); if(!s) return false;
+    resigned=s.resigned===true;
     player=s.player||'w'; level=s.level||'beginner'; tier=s.tier||'default'; opponentEngine=s.opponentEngine==='maia'?'maia':'stockfish'; solved=new Set(s.solved||[]); odds=ODDS[s.odds]?s.odds:'none'; gameOdds=ODDS[s.gameOdds]?s.gameOdds:'none'; plan=s.plan&&Array.isArray(s.plan.items)?s.plan:null;
     moveGrades=Array.isArray(s.moveGrades)?s.moveGrades.filter(x=>x&&Number.isInteger(x.ply)&&GRADE_ORDER.includes(x.assessment)):[];
     if(s.pgn){const g=new Chess(); if(g.load_pgn(s.pgn)){game=g; const h=game.history({verbose:true}); const m=h[h.length-1]; if(m){last={from:m.from,to:m.to};lastByCoach=m.color!==player}}}
@@ -587,11 +694,17 @@ function restore(){
 }
 
 /* ---------- coach log ---------- */
-function addLog(kind,opts){const item=Object.assign({kind},opts);logItems.push(item);if(logItems.length>60)logItems.shift();renderLog();return item}
+function addLog(kind,opts){const item=Object.assign({kind,ply:game.history().length},opts);logItems.push(item);if(logItems.length>60)logItems.shift();renderLog();if(kind==='you'||(kind==='coach'&&!opts.san))requestAnimationFrame(()=>{if(!$('log').hidden)$('log').scrollIntoView({block:'nearest'})});return item}
 function renderLog(){
-  const el=$('log'); el.textContent='';
+  const el=$('log'),history=$('historyLog');el.textContent='';history.textContent='';
+  const latestQuestion=logItems.findLastIndex(it=>it.kind==='you'&&it.ply===game.history().length);
+
   for(const it of logItems){
-    const d=document.createElement('div'); d.className='msg '+(it.kind==='coach'?'':it.kind);
+    const moveEntry=it.san&&/^(?:Coach: )?(?:[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?[+#]?|O-O(?:-O)?[+#]?)$/.test(it.san);
+    const newest=moveGrades.at(-1);
+    if(mode==='play'&&moveEntry&&((moveGrade&&newest&&it.ply===newest.ply)||(lastCoach&&it.ply===game.history().length&&it.san==='Coach: '+lastCoach.san)))continue;
+    if(mode==='play'&&game.history().length&&it===logItems[0]&&!it.san&&it.kind==='coach')continue;
+    const d=document.createElement('div'); d.className='msg '+(it.kind==='coach'?'':it.kind)+(moveEntry?' turn-summary':'');
     if(it.kind!=='sys'){
       const who=document.createElement('div'); who.className='who';
       who.append(it.kind==='you'?'You':'Coach');
@@ -600,9 +713,13 @@ function renderLog(){
     }
     const b=document.createElement('div'); b.className='body';
     if(it.san){const s=document.createElement('span');s.className='san';s.textContent=it.san+'  ';b.append(s)}
-    b.append(it.text||''); d.append(b); el.append(d);
+    b.append(it.text||''); d.append(b);
+    const isCurrent=mode==='lesson'||(!moveEntry&&((latestQuestion>=0&&logItems.indexOf(it)>=latestQuestion)||(!game.history().length&&latestQuestion<0)));
+    (isCurrent?el:history).append(d);
   }
-  el.scrollTop=el.scrollHeight;
+  el.hidden=!el.children.length;
+  $('coachHistory').hidden=mode==='lesson'||!history.children.length;
+  $('historyCount').textContent='('+history.children.length+')';
 }
 
 /* ---------- board ---------- */
@@ -629,13 +746,14 @@ function renderBoard(){
       if(sel===sq)b.classList.add('sel');
       if(targets.has(sq)){b.classList.add('tgt');if(targets.get(sq))b.classList.add('cap')}
       if(checkSq===sq)b.classList.add('check');
-      b.dataset.sq=sq;
+      b.dataset.sq=sq;b.style.zIndex=String(i+1);b.draggable=!!game.get(sq);
       const p=game.get(sq);
       b.setAttribute('aria-label',sq+(p?' '+(p.color==='w'?'white ':'black ')+({k:'king',q:'queen',r:'rook',b:'bishop',n:'knight',p:'pawn'})[p.type]:''));
       if(p){
         const s=document.createElement('span');s.className='pc '+p.color+' '+(boardStyle==='classic'?'glyph':'sprite');s.draggable=true;s.dataset.sq=sq;
+        if(boardStyle==='chalkboard')s.style.setProperty('--chalk-offset',({k:-14,q:-13,r:-8,b:0,n:8,p:13}[p.type])+'%');
         if(boardStyle==='classic')s.textContent=GLYPH[p.type]+VS;
-        else{const img=document.createElement('img');img.src=PIECE_ART[boardStyle];img.alt='';img.draggable=false;s.style.setProperty('--piece-col',PIECE_COL[p.type]);s.style.setProperty('--piece-row',p.color==='w'?'0%':'-100%');s.append(img)}
+        else{const img=document.createElement('img');img.src=PIECE_ART[boardStyle];img.alt='';img.draggable=false;img.onerror=()=>{if(boardStyle!=='classic')setBoardStyle('classic')};s.style.setProperty('--piece-col',PIECE_COL[p.type]);s.style.setProperty('--piece-row',p.color==='w'?'0%':'-100%');s.append(img)}
         if(coachAnimating&&lastByCoach&&last&&last.to===sq){const a=boardPoint(last.from),z=boardPoint(last.to);s.style.setProperty('--coach-dx',a.x-z.x);s.style.setProperty('--coach-dy',a.y-z.y)}
         b.append(s);
       }
@@ -643,6 +761,10 @@ function renderBoard(){
       if(j===0){const c=document.createElement('span');c.className='co r';c.textContent=rank;b.append(c)}
       el.append(b);
     }
+  }
+  if(layoutPreference==='board'&&mode==='play'&&moveGrade){
+    const history=game.history({verbose:true}),student=[...history].reverse().find(m=>m.color===player);
+    if(student&&moveGrade.moveLabel.includes(student.san)){const square=el.querySelector('[data-sq="'+student.to+'"]');if(square){const tag=document.createElement('span');tag.className='square-grade';tag.textContent=moveGrade.assessment;tag.style.background=GRADE_COLOR[moveGrade.assessment];square.append(tag)}}
   }
   renderMoveArrow();
 }
@@ -661,14 +783,15 @@ function renderSheet(){
   if(!h.length){const e=document.createElement('div');e.className='empty';e.textContent='No moves yet.';el.append(e);return}
   for(let i=0;i<h.length;i+=2){
     const n=document.createElement('div');n.className='n';n.textContent=(i/2+1)+'.';
-    const makeMove=(san,ply)=>{const d=document.createElement('div');d.className='sheet-move';if(san)d.append(san);const grade=moveGrades.find(x=>x.ply===ply);if(grade){const bar=document.createElement('i');bar.className='sheet-grade';bar.style.setProperty('--sheet-grade',GRADE_COLOR[grade.assessment]);bar.title=grade.assessment;d.append(bar)}return d};
+    const makeMove=(san,ply)=>{const d=document.createElement('div');d.className='sheet-move'+(ply===h.length?' latest':'')+(ply===h.length&&lastByCoach?' coach-reply':'');if(san)d.append(san);const grade=moveGrades.find(x=>x.ply===ply);if(grade){const bar=document.createElement('i');bar.className='sheet-grade';bar.style.setProperty('--sheet-grade',GRADE_COLOR[grade.assessment]);bar.title=grade.assessment;d.append(bar)}return d};
     const a=makeMove(h[i],i+1);
     const b=makeMove(h[i+1]||'',i+2);
     el.append(n,a,b);
   }
-  el.scrollTop=el.scrollHeight;
+  el.scrollLeft=el.scrollWidth;
 }
 function statusText(){
+  if(mode==='play'&&resigned)return 'You resigned. The coach wins.';
   if(coachAnimating&&coachNotice) return 'Coach played '+coachNotice;
   if(busy) return 'Coach is thinking…';
   if(game.in_checkmate()){const loser=game.turn();if(mode==='lesson')return 'Checkmate!';return loser===player?'Checkmate. The coach wins this one.':'Checkmate. You win!'}
@@ -687,7 +810,8 @@ const GRADE_TEXT={blunder:'var(--status-danger)',mistake:'var(--orange-text)',in
 function renderMoveGrade(){
   const card=$('gradeCard'),marker=$('gradeMarker'),segments=[...$('gradeSpectrum').querySelectorAll('.grade-segments i')],labels=[...$('gradeSpectrum').querySelectorAll('.grade-labels span')];
   segments.forEach(s=>s.style.opacity='.3');labels.forEach(s=>s.classList.remove('active'));
-  if(!moveGrade){marker.hidden=true;$('gradeMove').textContent='—';$('gradeWord').textContent='Make a move';$('gradeLoss').textContent='to see the coach’s grade';$('gradeFeedback').textContent='Stockfish will compare your move with the strongest continuation.';$('gradeBest').hidden=true;card.setAttribute('aria-label','Move strength: waiting for your move');return}
+  if(!moveGrade){marker.hidden=true;$('gradeMove').textContent='—';$('gradeWord').textContent='Make a move';$('gradeLoss').textContent='to see the coach’s grade';$('gradeFeedback').textContent='Stockfish will compare your move with the strongest continuation.';$('gradeBest').hidden=true;card.classList.add('awaiting');card.setAttribute('aria-label','Move strength: waiting for your move');return}
+  card.classList.remove('awaiting');
   const grade=GRADE_ORDER.includes(moveGrade.assessment)?moveGrade.assessment:'good',idx=GRADE_ORDER.indexOf(grade);
   card.style.setProperty('--grade-color',GRADE_COLOR[grade]);card.style.setProperty('--grade-text',GRADE_TEXT[grade]);segments[idx].style.opacity='1';labels[idx].classList.add('active');
   marker.hidden=false;marker.style.left=((idx+.5)*20)+'%';$('gradeMove').textContent=moveGrade.moveLabel;$('gradeWord').textContent=grade;
@@ -701,9 +825,7 @@ function renderCoachCard(){
   $('coachWatchBlock').hidden=!lastCoach.watchFor;$('coachWatch').textContent=lastCoach.watchFor||'';
 }
 function renderChrome(){
-  const color=$('colorSel').value==='b'?'Black':'White',depth={quick:'Fast',default:'Thorough',deep:'Deep review'}[$('tierSel').value]||'Thorough';
-  const handicap=$('oddsSel').value==='none'?'Even game':ODDS[$('oddsSel').value].label;
-  $('settingsSummary').textContent='You play '+color+' · '+depth+' · '+handicap;$('playerLabel').textContent=player==='w'?'White':'Black';$('levelLabel').textContent=level[0].toUpperCase()+level.slice(1);$('engineLabel').textContent=opponentEngine==='maia'?'Maia 3':'Stockfish';
+  $('matchSummary').textContent='vs '+(opponentEngine==='maia'?'Maia 3':'Stockfish')+' · '+level[0].toUpperCase()+level.slice(1)+' · '+(gameOdds==='none'?'Even game':ODDS[gameOdds].label);$('playerLabel').textContent=player==='w'?'White':'Black';$('levelLabel').textContent=level[0].toUpperCase()+level.slice(1);$('engineLabel').textContent=opponentEngine==='maia'?'Maia 3':'Stockfish';
   applyTheme();
 }
 function render(){
@@ -713,26 +835,33 @@ function render(){
   const notice=$('coachNotice');notice.hidden=!coachNotice;notice.textContent='';
   if(coachNotice){notice.append('Coach played ');const move=document.createElement('span');move.className='move';move.textContent=coachNotice+(lastCoach?' '+lastCoach.from+' → '+lastCoach.to:'');notice.append(move,' · your move');if(lastCoach&&lastCoach.why){notice.append(document.createElement('br'));const reason=document.createElement('span');reason.className='note';reason.textContent=lastCoach.why;notice.append(reason)}}
   $('stopBtn').hidden=!busy||coachAnimating;
-  const coachTurn=mode==='play'&&!busy&&!game.game_over()&&game.turn()!==player;
+  const coachTurn=mode==='play'&&!resigned&&!busy&&!game.game_over()&&game.turn()!==player;
   $('coachMoveBtn').hidden=!coachTurn;
   $('undoBtn').disabled=game.history().length===0||mode!=='play';
   $('reviewBtn').disabled=busy||game.history().length<2;
-  $('hintBtn').disabled=busy||game.game_over()||game.turn()!==player;
+  $('hintBtn').disabled=(mode==='play'&&resigned)||busy||game.game_over()||game.turn()!==player;
   $('askBtn').disabled=busy;
-  $('colorSel').value=player;$('levelSel').value=level;$('engineSel').value=opponentEngine;$('tierSel').value=tier;$('oddsSel').value=odds;
+  $('resignBtn').disabled=busy||resigned||mode!=='play'||game.game_over();
+
   $('coachAvail').textContent=sampleState==='on'?(coachSource==='akashml'?'Stockfish analysis · AkashML coaching':'Powered by Claude on your account'):sampleState==='checking'?'Connecting…':analyzer?'Stockfish analysis · local explanations':'Local coaching mode · no LLM required';
-  renderMoveGrade();renderCoachCard();renderChrome();
+  renderMoveGrade();renderCoachCard();renderChrome();renderLog();
   renderLessons();
   renderPlan();
+  const position=mode+':'+game.fen();
+  if(position!==presentedPosition){presentedPosition=position;$('coachFeed').scrollTop=0;$('coachHistory').open=false}
+  document.documentElement.dataset.mode=mode;
+  $('openCoachBtn').textContent=mode==='lesson'?'Lesson details':'Ask the coach';
+  $('coachPanelTitle').textContent=mode==='lesson'?'Lessons':'Coach';
+  $('coachPanel').setAttribute('aria-label',mode==='lesson'?'Lessons':'Coach');
 }
 
 /* ---------- input ---------- */
 $('board').addEventListener('click',e=>{const b=e.target.closest('.sq');if(b)onSquare(b.dataset.sq)});
-$('board').addEventListener('dragstart',e=>{const p=e.target.closest('.pc');if(!p||!canMovePiece(p.dataset.sq)){e.preventDefault();return}sel=p.dataset.sq;e.dataTransfer.setData('text/plain',sel);e.dataTransfer.effectAllowed='move';requestAnimationFrame(renderBoard)});
+$('board').addEventListener('dragstart',e=>{const p=e.target.closest('.sq');if(!p||!canMovePiece(p.dataset.sq)){e.preventDefault();return}sel=p.dataset.sq;e.dataTransfer.setData('text/plain',sel);e.dataTransfer.effectAllowed='move';requestAnimationFrame(renderBoard)});
 $('board').addEventListener('dragover',e=>{if(sel)e.preventDefault()});
 $('board').addEventListener('drop',e=>{e.preventDefault();const b=e.target.closest('.sq');if(b)onSquare(b.dataset.sq)});
 function canInteract(){
-  if(busy||game.game_over())return false;
+  if(busy||game.game_over()||(mode==='play'&&resigned))return false;
   if(mode==='play'&&game.turn()!==player)return false;
   if(mode==='lesson'&&LESSONS[lessonIdx].solvedNow)return false;
   return true;
@@ -804,14 +933,16 @@ function materialLine(color){
   return diff===0?'Material after the move is equal.':'After the move, the student is '+(diff>0?'ahead':'behind')+' by '+Math.abs(diff)+' material point'+(Math.abs(diff)===1?'':'s')+'.';
 }
 async function coachReply(studentMove,beforeMove){
+  const replyGame=game;
   busy=true; render();
   const legal=game.moves();
   const studentColor=player==='w'?'White':'Black';
   let engine=null;
   if(analyzer){
     try{engine=await analyzer({fen:game.fen(),beforeFen:beforeMove&&beforeMove.fen,studentMove:beforeMove&&beforeMove.studentMove,level,opponentEngine,baseFen:startFen(gameOdds,player==='w'?'b':'w'),moves:game.history({verbose:true}).map(m=>m.from+m.to+(m.promotion||''))})}
-    catch(e){addLog('sys',{text:'Objective analysis is temporarily unavailable; the fallback coach will choose this move.'})}
+    catch(e){if(game!==replyGame)return;addLog('sys',{text:'Objective analysis is temporarily unavailable; the fallback coach will choose this move.'})}
   }
+  if(game!==replyGame)return;
   const engineMove=engine&&tryUci(engine.coachMove);
   const moveEngine=engine&&engine.opponentEngine==='maia'?'Maia 3':'Stockfish';
   if(engine&&engine.engineFallback)addLog('sys',{text:'Maia 3 is temporarily unavailable, so Stockfish chose this move.'});
@@ -824,6 +955,7 @@ async function coachReply(studentMove,beforeMove){
   }
   if(!sample){
     if(!analyzer)await new Promise(r=>setTimeout(r,350));
+    if(game!==replyGame)return;
     const m=engineMove||localMove();
     if(studentMove)addLog('coach',{san:studentMove.san,tag:engine&&engine.assessment||null,text:engine?engineStudentFeedback(engine,bestStudent):localStudentFeedback(studentMove)});
     busy=false; playCoachMove(m,engineMove?(moveEngine==='Maia 3'?'Maia 3 chose a human-like move near '+engine.maiaElo+' Elo.':'Stockfish chose this move for the selected coach strength.'):localMoveWhy(m)); return;
@@ -854,10 +986,12 @@ async function coachReply(studentMove,beforeMove){
   let res=null, note=null;
   try{ res=await sample.json(prompt,{modelTier:tier,purpose:'move',cache:false,signal:ctl.signal}); }
   catch(e){
+    if(game!==replyGame)return;
     if(e&&e.code==='cancelled') note='You stopped the coach, so it played a quick move without comments.';
     else if(disableSample(e)) note='The coach chat isn’t available, so the opponent will play simple moves.';
     else note=errCopy(e)+' It played a quick move instead.';
   }
+  if(game!==replyGame)return;
   busy=false; ctl=null;
   if(res&&typeof res==='object'){
     if(studentMove&&res.feedback){
@@ -984,17 +1118,20 @@ function endGame(){
 }
 
 async function streamCoach(prompt,title,purpose='question'){
+  const replyGame=game;
   if(!sample)return;
   busy=true; render();
   const item=addLog('coach',{text:'Thinking…',san:title||null});
   ctl=new AbortController();
   try{
-    await sample(prompt,{modelTier:tier,purpose,cache:false,signal:ctl.signal,onText:({text})=>{item.text=text;renderLog()}});
+    await sample(prompt,{modelTier:tier,purpose,cache:false,signal:ctl.signal,onText:({text})=>{if(game===replyGame){item.text=text;renderLog()}}});
   }catch(e){
+    if(game!==replyGame)return;
     if(e&&e.code==='cancelled'){item.text=(e.text||'')+(e.text?'\n':'')+'(stopped)'}
     else if(disableSample(e)){item.text='The coach chat isn’t available in this view.'}
     else{item.text=(e&&e.text?e.text+'\n':'')+errCopy(e)}
   }
+  if(game!==replyGame)return;
   busy=false; ctl=null; renderLog(); render();
 }
 
@@ -1040,52 +1177,61 @@ function resetCoachReveal(){
   coachRevealTimer=null;coachAnimating=false;coachNotice=null;
 }
 function openSettings(){
+
+  document.querySelector('.wrap').inert=true;$('openCoachBtn').inert=true;
   $('settingsBackdrop').hidden=false;$('settingsBtn').setAttribute('aria-expanded','true');requestAnimationFrame(()=>$('settingsDrawer').focus());
 }
 function closeSettings(){
+  document.querySelector('.wrap').inert=false;$('openCoachBtn').inert=false;
   $('settingsBackdrop').hidden=true;$('settingsBtn').setAttribute('aria-expanded','false');$('settingsBtn').focus();
 }
-$('settingsBtn').onclick=openSettings;$('settingsSummary').onclick=openSettings;$('settingsCloseBtn').onclick=closeSettings;$('settingsCancelBtn').onclick=closeSettings;
+$('settingsBtn').onclick=openSettings;$('settingsSummary').onclick=openSettings;$('settingsCloseBtn').onclick=closeSettings;$('settingsDoneBtn').onclick=closeSettings;
 $('settingsBackdrop').addEventListener('click',e=>{if(e.target===$('settingsBackdrop'))closeSettings()});
 $('settingsDrawer').addEventListener('keydown',e=>{
   if(e.key==='Escape'){e.preventDefault();closeSettings();return}
   if(e.key!=='Tab')return;
-  const focusable=[...$('settingsDrawer').querySelectorAll('button:not(:disabled),select:not(:disabled)')];if(!focusable.length)return;
+  const focusable=[...$('settingsDrawer').querySelectorAll('button:not(:disabled),select:not(:disabled),summary')].filter(x=>x.getClientRects().length);if(!focusable.length)return;
   const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
 });
 document.querySelectorAll('[data-theme-choice]').forEach(b=>b.onclick=()=>setTheme(b.dataset.themeChoice));
 document.querySelectorAll('[data-board-choice]').forEach(b=>b.onclick=()=>setBoardStyle(b.dataset.boardChoice));
 document.querySelectorAll('[data-coach-prompt]').forEach(b=>b.onclick=()=>{$('askInput').value=b.dataset.coachPrompt;$('askInput').focus()});
 if(window.matchMedia){const themeMedia=window.matchMedia('(prefers-color-scheme: dark)');const syncSystem=()=>{if(themePreference==='system')applyTheme()};if(themeMedia.addEventListener)themeMedia.addEventListener('change',syncSystem);else if(themeMedia.addListener)themeMedia.addListener(syncSystem)}
-$('newTopBtn').onclick=()=>$('newBtn').click();
 $('replayMoveBtn').onclick=()=>{
   if(!lastCoach||busy)return;coachAnimating=true;busy=true;render();if(coachRevealTimer)clearTimeout(coachRevealTimer);coachRevealTimer=setTimeout(()=>{coachRevealTimer=null;coachAnimating=false;busy=false;render()},700);
 };
 $('tellMoreBtn').onclick=()=>{$('askInput').value='Tell me more about '+(lastCoach?lastCoach.san:'the coach’s move')+'.';$('askInput').focus()};
-$('newBtn').onclick=()=>{
+$('newTopBtn').onclick=()=>{
   if(ctl)ctl.abort();
   resetCoachReveal();
+  if(mode==='lesson')setMode('play');
   player=$('colorSel').value; level=$('levelSel').value; opponentEngine=$('engineSel').value; tier=$('tierSel').value;
   odds=$('oddsSel').value; gameOdds=odds;
+  resigned=false;
   game=new Chess(startFen(gameOdds,player==='w'?'b':'w')); sel=null; last=null; lastByCoach=false; busy=false; plan=null;moveGrade=null;lastCoach=null;moveGrades=[];
+  logItems=[];
   addLog('sys',{text:'New game. You play '+(player==='w'?'White':'Black')+(gameOdds==='none'?'.':', and the coach gives '+ODDS[gameOdds].label+' (it starts without '+ODDS[gameOdds].desc+').')});
-  save();closeSettings();render();
+  save();render();$('newTopBtn').focus();
   if(player==='b')coachReply(null);
 };
-$('levelSel').onchange=()=>{level=$('levelSel').value;save();renderChrome()};
-$('engineSel').onchange=()=>{opponentEngine=$('engineSel').value;save();renderChrome();addLog('sys',{text:(opponentEngine==='maia'?'Maia 3 will choose human-like moves at the selected strength. Stockfish will still grade your play.':'Stockfish will calculate the coach’s moves at the selected strength.')})};
-$('tierSel').onchange=()=>{tier=$('tierSel').value;save();renderChrome()};
-$('oddsSel').onchange=()=>{odds=$('oddsSel').value;save();renderChrome();addLog('sys',{text:'Press “New game” to start with '+ODDS[odds].label+'.'})};
-$('colorSel').onchange=()=>{renderChrome();addLog('sys',{text:'Press “New game” to start as '+($('colorSel').value==='w'?'White':'Black')+'.'})};
 $('undoBtn').onclick=()=>{
   if(ctl)ctl.abort(); resetCoachReveal(); busy=false;
   if(!game.history().length)return;
+  resigned=false;game.header('Result','*');
   game.undo();
   if(game.turn()!==player&&game.history().length)game.undo();
   const h=game.history({verbose:true}),m=h[h.length-1]; last=m?{from:m.from,to:m.to}:null;lastByCoach=!!m&&m.color!==player;sel=null;moveGrade=null;lastCoach=null;
   moveGrades=moveGrades.filter(x=>x.ply<=game.history().length);
   addLog('sys',{text:'Took back your last move.'});
   save(); render();
+};
+$('resignBtn').onclick=()=>{$('resignConfirm').hidden=false;$('confirmResignBtn').focus()};
+$('cancelResignBtn').onclick=()=>{$('resignConfirm').hidden=true;$('resignBtn').focus()};
+$('confirmResignBtn').onclick=()=>{
+  if(busy||mode!=='play'||resigned||game.game_over())return;
+  resigned=true;game.header('Result',player==='w'?'0-1':'1-0');sel=null;
+  $('resignConfirm').hidden=true;$('moreActions').open=false;
+  addLog('sys',{text:'You resigned. Review this game or start a new one whenever you’re ready.'});save();render();
 };
 $('pgnBtn').onclick=()=>{
   const pgn=game.pgn()||'(no moves yet)';
@@ -1121,20 +1267,30 @@ function renderLessons(){
     const c=document.createElement('span');c.className='c';c.textContent=l.concept;
     b.append(m,t,c);
     if(solved.has(l.id)){const d=document.createElement('span');d.className='done';d.textContent='Solved';b.append(d)}
-    b.onclick=()=>loadLesson(i);
+    b.onclick=()=>{closeLessonBrowser();loadLesson(i);$('lessonTitle').setAttribute('tabindex','-1');$('lessonTitle').focus({preventScroll:true});$('coachFeed').scrollTop=0};
     el.append(b);
   });
   const l=LESSONS[lessonIdx];
   $('lessonConcept').textContent='Lesson '+(lessonIdx+1)+' of '+LESSONS.length+' · '+l.unit+' · '+l.concept+' · Difficulty '+l.difficulty+'/3';
   $('lessonTitle').textContent=l.title; $('lessonTask').textContent=l.task;
 }
+function openLessonBrowser(){
+  renderLessons();$('lessonBrowser').showModal();$('closeLessonBrowserBtn').focus();
+}
+function closeLessonBrowser(){
+  $('lessonBrowser').close();$('chooseLessonBtn').focus({preventScroll:true});
+}
+$('chooseLessonBtn').onclick=openLessonBrowser;
+$('closeLessonBrowserBtn').onclick=closeLessonBrowser;
+$('lessonBrowser').addEventListener('click',e=>{if(e.target===$('lessonBrowser')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeLessonBrowser()}});
 let savedPlay=null;
 function loadLesson(i){
   if(ctl)ctl.abort(); resetCoachReveal(); busy=false;
   lessonIdx=i; const l=LESSONS[i]; l.solvedNow=false;
   game=new Chess(l.fen); sel=null; last=null;lastByCoach=false;
-  addLog('sys',{text:'Lesson: '+l.title+'. '+l.task});
+  logItems=[];
   render();
+  $('coachFeed').scrollTop=0;
 }
 function checkLesson(mv){
   const l=LESSONS[lessonIdx];
@@ -1158,10 +1314,11 @@ $('lReset').onclick=()=>loadLesson(lessonIdx);
 $('lNext').onclick=()=>loadLesson((lessonIdx+1)%LESSONS.length);
 
 function setMode(m){
-  if(m===mode)return;
+  if(m===mode){if(m==='lesson'&&layoutPreference==='board')setCoachSheet(true);return;}
   if(ctl)ctl.abort(); resetCoachReveal(); busy=false;
-  if(m==='lesson'){savedPlay={pgn:game.pgn(),last,lastByCoach};mode='lesson';loadLesson(lessonIdx)}
+  if(m==='lesson'){savedPlay={pgn:game.pgn(),last,lastByCoach,logItems:[...logItems]};mode='lesson';loadLesson(lessonIdx)}
   else{
+    logItems=savedPlay?savedPlay.logItems:[];
     mode='play'; game=new Chess(); sel=null; last=null;lastByCoach=false;
     if(savedPlay&&savedPlay.pgn){game.load_pgn(savedPlay.pgn);last=savedPlay.last;lastByCoach=!!savedPlay.lastByCoach}
   }
@@ -1169,12 +1326,51 @@ function setMode(m){
   $('tabLessons').setAttribute('aria-selected',String(mode==='lesson'));
   $('playPanel').hidden=mode!=='play'; $('lessonPanel').hidden=mode!=='lesson';
   render();
+  if(layoutPreference==='board')setCoachSheet(mode==='lesson');
 }
 $('tabPlay').onclick=()=>setMode('play');
 $('tabLessons').onclick=()=>setMode('lesson');
 
+/* ---------- responsive presentation ---------- */
+let coachReturnFocus=null;
+function setCoachSheet(open){
+  if(open&&!document.documentElement.classList.contains('coach-open'))coachReturnFocus=document.activeElement;
+  document.documentElement.classList.toggle('coach-open',open);
+  document.querySelector('.board-col').inert=open;document.querySelector('.topbar').inert=open;$('openCoachBtn').inert=open;
+  $('coachScrim').hidden=!open;$('openCoachBtn').setAttribute('aria-expanded',String(open));$('lessonDetailsBtn').setAttribute('aria-expanded',String(open));
+  if(open){$('coachPanel').setAttribute('role','dialog');$('coachPanel').setAttribute('aria-modal','true');$('closeCoachBtn').focus();requestAnimationFrame(()=>{const card=mode==='play'?$('gradeCard'):$('lessonPanel');$('coachFeed').scrollTop=card.offsetTop-$('coachFeed').offsetTop})}
+  else{$('coachPanel').removeAttribute('role');$('coachPanel').removeAttribute('aria-modal');if(coachReturnFocus&&coachReturnFocus.isConnected)coachReturnFocus.focus()}
+}
+function arrangeLayout(){
+  const tablet=window.matchMedia('(min-width:900px) and (max-width:1400px) and (orientation:landscape)').matches;
+  const panel=$('coachPanel'),header=document.querySelector('.topbar'),actions=$('boardActions'),sheet=$('sheet');
+  if(tablet&&layoutPreference==='coach'){
+    panel.prepend(header);$('askDock').append(actions);
+    if(innerWidth<1280)panel.insertBefore(sheet,$('coachFeed'));else document.querySelector('.board-col').append(sheet);
+  }else{
+    document.querySelector('.wrap').prepend(header);
+    document.querySelector('.board-col').append(sheet,actions);
+  }
+}
+function setLayout(value){
+  layoutPreference=value;document.documentElement.dataset.layout=value;
+  try{localStorage.setItem('chesscoach.layout',value)}catch(e){}
+  document.querySelectorAll('[data-layout-choice]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.layoutChoice===value)));
+  setCoachSheet(false);arrangeLayout();renderBoard();
+}
+document.querySelectorAll('[data-layout-choice]').forEach(b=>b.onclick=()=>setLayout(b.dataset.layoutChoice));
+$('lessonDetailsBtn').onclick=$('openCoachBtn').onclick=$('whyBtn').onclick=()=>setCoachSheet(true);
+$('closeCoachBtn').onclick=$('coachScrim').onclick=()=>setCoachSheet(false);
+$('coachPanel').addEventListener('keydown',e=>{
+  if(!document.documentElement.classList.contains('coach-open'))return;
+  if(e.key==='Escape'){e.preventDefault();setCoachSheet(false)}
+  if(e.key==='Tab'){const items=[...$('coachPanel').querySelectorAll('button,textarea,select,summary')].filter(x=>!x.disabled&&x.getClientRects().length);const first=items[0],last=items.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}
+});
+window.addEventListener('resize',arrangeLayout);
+setLayout(layoutPreference);
 /* ---------- boot ---------- */
 const resumed=restore();
+$('colorSel').value=player;$('levelSel').value=level;$('engineSel').value=opponentEngine;$('tierSel').value=tier;$('oddsSel').value=odds;
 addLog('coach',{text:resumed
   ?'Welcome back. Your last game is set up where you left off.'
   :'Hi! Make your first move whenever you’re ready. I’ll comment on each move and explain mine. Ask me anything below, or open Lessons to practice key patterns.'});

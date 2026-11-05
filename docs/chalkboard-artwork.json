@@ -1,0 +1,26 @@
+{
+  "tool": "Built-in image_gen (generation and transparent sprite refinement)",
+  "assets": {
+    "board": "src/board-styles/chalkboard-board.png",
+    "pieces": "src/board-styles/chalkboard-pieces-v2.png",
+    "preview": "docs/chess-coach-chalkboard-dark.png"
+  },
+  "prompts": [
+    {
+      "asset": "pieces",
+      "stage": "generate",
+      "prompt": "Use case: stylized-concept. Asset type: production chess-piece sprite sheet for a green-and-white chalkboard chess game. Generate one wide landscape transparent PNG, exactly 3:1 aspect ratio, arranged as SIX equal-width columns and TWO equal-height rows of square cells (12 pieces total). Each piece is centered within its own cell with a safe 16% transparent margin on all sides; same baseline and consistent visual scale; do not overlap cell boundaries. Columns LEFT TO RIGHT in BOTH rows: KING with cross, QUEEN with crown, ROOK castle tower, BISHOP with diagonal mitre cut, KNIGHT horse head facing left, PAWN round head. Top row white side: warm WHITE chalk filled silhouettes with dark forest-green fine outlines and a few green interior chalk detail strokes. Bottom row black side: deep FOREST GREEN filled silhouettes with clearly visible WHITE chalk outlines and white interior details. Simple traditional Staunton silhouettes, front view flat 2D hand-drawn classroom chalk illustrations, bold clean silhouettes legible at 40 pixels, gently irregular hand-chalk edges and subtle powdery hatching within opaque shapes. All pieces have sturdy simple flat pedestal bases. Minimal elegant educational aesthetic. TRUE transparent background, no checkerboard, no surface, no chessboard, no shadows, no text, no labels, no grid lines, no extra pieces. Precisely six evenly spaced columns and two rows. Transparent whitespace must separate every cell."
+    },
+    {
+      "asset": "pieces",
+      "stage": "refine",
+      "prompt": "Refine this production chess sprite sheet, keeping all twelve piece designs, the 6-column 2-row layout, exact order king queen rook bishop knight pawn, and white top row / forest-green bottom row. Clean away ALL neon green fringes, stray dust, white blobs and halos OUTSIDE the piece silhouettes. Keep only a neat chalk-white outline on the green pieces and a neat dark forest-green outline on the white pieces. Genuine transparent background. Center each piece EXACTLY at the center of its equal square cell in a 6 by 2 grid. Shrink each piece to occupy about 72 percent of its cell height, leaving transparent margins on every side and generous space between the two rows. All bases aligned within each row. Canvas aspect ratio exactly 3:1. Keep subtle chalk texture INSIDE silhouettes only. No shadows, no extra pieces, no labels, no background grid. This is a clean game sprite atlas, consistent alignment essential."
+    },
+    {
+      "asset": "board",
+      "stage": "generate",
+      "prompt": "Use case: stylized-concept. Asset type: square 1024x1024 background texture for a green-and-white chalkboard chessboard. Create an entirely flat front-on blank vintage classroom GREEN CHALKBOARD surface, full bleed, deep forest green #204c3b with very subtle wiped white chalk haze, soft fine slate grain, and quiet cloudy eraser traces. Uniform low contrast across the entire image so a precise chess grid and pieces can be overlaid in code. No perspective, no frame, no border, no lettering, no drawings, no chess pieces, no chess grid, no objects, no strong marks, no lighting gradient. Matte powdery material, elegant and calm, green not black. This is a reusable material texture, not a scene."
+    }
+  ],
+  "implementation": "The slate image underlies an exact CSS 8x8 grid. Sprite positions are calibrated in CSS; generated alpha is preserved. Both assets are copied into the standalone build and inlined into the Artifact build."
+}

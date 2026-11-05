@@ -42,7 +42,7 @@ check(manifest.name === 'Chess Coach' && manifest.icons.some(icon => icon.sizes 
 check(buildScript.includes('apple-touch-icon') && buildScript.includes('apple-mobile-web-app-capable'), 'build adds iPad home-screen metadata');
 check(html.includes('data-theme-choice="system"') && html.includes('data-theme-choice="light"') && html.includes('data-theme-choice="dark"'), 'settings offer System, Light, and Dark appearance modes');
 check(js.includes("localStorage.getItem('chesscoach.theme')") && js.includes("localStorage.setItem('chesscoach.theme',t)"), 'theme preference persists locally');
-for (const style of ['classic', 'aether', 'neon', 'wildwood', 'spell']) {
+for (const style of ['classic', 'aether', 'neon', 'wildwood', 'spell', 'chalkboard']) {
   check(html.includes(`data-board-choice="${style}"`), `settings offer the ${style} board style`);
 }
 check(js.includes("localStorage.getItem('chesscoach.boardStyle')") && js.includes("localStorage.setItem('chesscoach.boardStyle',s)"), 'board style persists locally');
@@ -60,7 +60,7 @@ check(html.includes('data:image/png;base64,'), 'header embeds the Coach Knight m
 for (const icon of ['apple-touch-icon.png', 'favicon-32.png', 'icon-192.png', 'icon-512.png']) {
   check(existsSync(new URL(`../src/icons/${icon}`, import.meta.url)), `home-screen asset ${icon} exists`);
 }
-for (const asset of ['aether-board.webp','aether-pieces.webp','aether-pieces-v2.png','neon-board.webp','neon-pieces.webp','neon-pieces-v2.png','wildwood-board.webp','wildwood-pieces.webp','wildwood-pieces-v2.png','spell-board.webp','spell-pieces.webp','spell-pieces-v2.png']) {
+for (const asset of ['chalkboard-board.png','chalkboard-pieces-v2.png','aether-board.webp','aether-pieces.webp','aether-pieces-v2.png','neon-board.webp','neon-pieces.webp','neon-pieces-v2.png','wildwood-board.webp','wildwood-pieces.webp','wildwood-pieces-v2.png','spell-board.webp','spell-pieces.webp','spell-pieces-v2.png']) {
   check(existsSync(new URL(`../src/board-styles/${asset}`, import.meta.url)), `redesign asset ${asset} exists`);
 }
 check(buildScript.includes("writeFileSync(new URL('../dist/artifact.html'") && buildScript.includes("'image/png':'image/webp'"), 'build emits self-contained Artifact source');

@@ -19,6 +19,7 @@ scripts/engine.mjs        Stockfish analysis, grading, and strength profiles
 scripts/maia_service.py   Internal HTTP/UCI wrapper for the Maia-3 CPU sidecar
 tests/verify.mjs          Checks lesson solutions and handicap start positions with chess.js
 tests/server.mjs          Stockfish endpoint + mocked AkashML proxy integration test
+tests/ui.mjs              Chrome regression checks for responsive layout and game interactions
 Dockerfile                Reproducible non-root production image
 Dockerfile.maia           Pinned Maia-3/PyTorch CPU image with embedded checkpoint
 compose.yaml              Configurable-bind home-lab deployment
@@ -29,7 +30,8 @@ package.json              npm scripts: test, preview
 ## Commands
 
 - `npm install` installs chess.js 0.10.3 (dev only, for tests) and Stockfish 19
-- `npm test` runs `tests/verify.mjs`. Run it after touching `LESSONS`, `ODDS` or `startFen`
+- `npm test` runs lesson/handicap verification and server integration tests
+- `npm run test:ui` builds and runs Chrome UI regressions, including long games, lesson browsing, appearance, and pending-analysis resets
 - `npm run build` creates a standalone app in `dist/` with a local copy of chess.js
 - `npm start` builds and serves the app at `http://127.0.0.1:4173` (override with `PORT`)
 - `npm run preview` is kept as an alias for the standalone build
@@ -106,18 +108,22 @@ Error handling branches on `e.code` (never `e.message`). Permanent codes (`not_g
 - `player` (`'w'|'b'`), `level` (`beginner|improving|club`), `tier` (`default|quick`)
 - `odds` (selected for the next game) and `gameOdds` (what the current game started with). Keys are in `ODDS`.
 - `plan`, `logItems`, `solved` (lesson ids), `busy`, `ctl` (AbortController for the in-flight Claude call)
-- Persisted to localStorage key `chesscoach.v1`: `{pgn, player, level, tier, odds, gameOdds, solved, plan, moveGrades}`. Odds games survive reloads because chess.js writes `[SetUp]`/`[FEN]` headers into the PGN.
+- Persisted to localStorage key `chesscoach.v1`: `{pgn, player, level, tier, opponentEngine, odds, gameOdds, solved, plan, moveGrades, resigned}`. Odds games survive reloads because chess.js writes `[SetUp]`/`[FEN]` headers into the PGN.
 - `themePreference`: `'system' | 'light' | 'dark'`, stored separately as `chesscoach.theme`; System removes the root `data-theme` attribute and follows `prefers-color-scheme`.
-- `boardStyle`: `'classic' | 'aether' | 'neon' | 'wildwood' | 'spell'`, stored separately as `chesscoach.boardStyle`.
+- `boardStyle`: `'classic' | 'aether' | 'neon' | 'wildwood' | 'spell' | 'chalkboard'`, stored separately as `chesscoach.boardStyle`. Chalkboard is the default; saved choices take precedence.
+- `layoutPreference`: coach panel or board-only layout, stored as `chesscoach.layout`.
 
 ## Features and where they live
 
-- **Board**: `renderBoard()`. A CSS grid with 8 fixed `minmax(0,1fr)` rows and columns and `aspect-ratio: 1` squares, so empty ranks never collapse (this was a bug; keep both row and column templates). Classic uses Unicode pieces; the four illustrated styles use 6×2 sprite sheets over themed frames. Narrow phones flatten the decorative frame so the playable squares remain large. Click-to-move plus HTML5 drag. Promotion is always to a queen.
+- **Board**: `renderBoard()`. A CSS grid with 8 fixed `minmax(0,1fr)` rows and columns and `aspect-ratio: 1` squares, so empty ranks never collapse (this was a bug; keep both row and column templates). Classic uses Unicode pieces; the five illustrated styles use 6×2 sprite sheets over themed frames. Chalkboard uses a slate texture beneath an exact CSS grid. Keep board `isolation:isolate` so arrows remain above every rank. Click-to-move plus HTML5 drag. Promotion is always to a queen.
 - **Coach move reveal**: `playCoachMove()` keeps `busy=true` for 700 ms after applying the move. `boardPoint()` converts the move's origin/destination into orientation-aware grid deltas; `--coach-dx`/`--coach-dy` animate the actual piece across its path. `coachAnimating`, `lastByCoach`, and `coachNotice` also drive stronger move-square highlights, the persistent notice, and input lock. Reset the reveal timer when starting/undoing a game or switching modes.
 - **Move analysis UI**: `renderMoveGrade()` places the engine assessment on the five-step spectrum and records it in the scoresheet; `renderCoachCard()` and `renderMoveArrow()` make the reply, opening name, explanation, next concern, path, replay action, and follow-up action persistent and visible.
 - **Settings and appearance**: the drawer is outside `playPanel` so it remains usable from Lessons. `applyTheme()` and `setTheme()` implement System/Light/Dark, while `setBoardStyle()` selects the board family without coupling appearance to game state.
+- **Responsive layout**: above 1400px, fit the square board to both viewport dimensions and scroll long coaching inside the panel. Keep the ask box accessible. Board-only lessons have a Lesson details button that reopens the drawer.
+- **New game**: the header starts a game immediately using pending settings; Done closes settings. Ignore stale engine/coaching results after a reset.
+- **Lesson browser**: Choose lesson opens a separate dialog with wrapping filters and one scrolling catalog; keep exercise controls in the coach panel.
 - **Handicap**: `ODDS` + `startFen(key, coachColor)` remove pieces from the coach's side and fix castling rights. `oddsLine()` tells Claude about the handicap. `endGame()` suggests the next odds level up or down.
-- **Plan card**: `renderPlan()`. Coach plan when fresh, else `basicPlan()` (pieces under attack via `attackedBy()`, undeveloped minors, castling, center).
+- **Plan card**: `renderPlan()`. Coach plan when fresh, else `basicPlan()` (pieces under attack via `attackedBy()`, undeveloped minors, castling, center, then follow-on goals). Current cards and the plan precede questions; older coaching is collapsed under Earlier coaching. Feed children must not shrink as history grows.
 - **Lessons**: `LESSONS` array with `{id, unit, difficulty, title, concept, fen, sol, task, hint, explain}`. `sol` is SAN. A match ignores `+`/`#`. Hints and explanations are static (no Claude cost).
 - **Scoresheet / PGN**: `renderSheet()`, `pgnBtn` (clipboard with a selectable-text fallback).
 

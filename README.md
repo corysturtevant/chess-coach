@@ -1,6 +1,6 @@
 # Chess Coach
 
-![Chess Coach with the Wildwood board in dark mode](docs/chess-coach-wildwood-dark.png)
+![Chess Coach with the default Chalkboard design](docs/chess-coach-chalkboard-dark.png)
 
 A responsive chess trainer with teaching games, a 24-lesson curriculum, objective Stockfish analysis, and optional AI-written coaching. It runs locally without an AI provider and automatically enables richer explanations when AkashML is configured.
 
@@ -65,20 +65,41 @@ After every coach move, the board stays locked for a 700 ms reveal: the piece vi
 
 ## Interface and appearance
 
-The play screen uses the Sturtevant.Team visual system: a board-first responsive layout, a five-step
-move-grade spectrum, a dedicated coach-move card, and orange-only coach move cues. It adapts to
-phone, standard iPad, iPad Pro, and desktop widths; iPad landscape keeps the board dominant with
-analysis alongside it.
+The play screen follows the v2 redesign: a larger board, a horizontal graded move list,
+and one coach panel containing move feedback, the coach’s reply, your plan, and questions.
+The current position stays first; past turns and earlier questions live under **Earlier coaching**.
+The plan continues with follow-on goals after the opening principles have been completed.
+Above 1400px, the board scales with both window dimensions so the move list, action buttons,
+and pinned ask box fit without page scrolling; longer coaching content scrolls inside its panel.
+On landscape iPads, the header and action buttons move into the coach panel to give the board
+more room. On phones, the panel stacks below the board.
 
-Open the settings button in the header to choose **System**, **Light**, or **Dark** appearance.
-System follows the device preference, while an explicit choice is stored locally under
-`chesscoach.theme`. Theme selection is available from both Play and Lessons and does not affect the
-saved game or lesson progress.
+Lessons keep the current exercise and practice controls in the sidebar. **Choose lesson** opens
+a separate, filterable lesson browser with one scrolling area; choosing an exercise returns to
+the board. Hints and explanations appear below the exercise. In Board only layout,
+**Lesson details** above the board reopens the lesson drawer; the floating button and
+the active **Lessons** tab also reopen it.
 
-The same drawer offers five complete board-and-piece styles: **Classic**, **Aether Court**, **Neon
-Orbit**, **Wildwood**, and **Spell & Scale**. The illustrated styles use the redesign's optimized
-WebP artwork and retain a larger edge-to-edge board on narrow phones. The choice is stored locally
-under `chesscoach.boardStyle` and works with every light/dark appearance setting.
+Settings offers **Coach panel** and **Board only** layouts. Board only adds an on-board grade
+and an **Ask the coach** button that opens a side sheet on desktop or a bottom sheet on phones.
+Switching layouts keeps your game. The **⋯** menu provides Copy PGN and Resign, with an inline
+confirmation before resignation.
+
+Choose **Auto**, **Light**, or **Dark** appearance and one of six board-and-piece styles:
+**Classic**, **Aether Court**, **Neon Orbit**, **Wildwood**, **Spell & Scale**, and **Chalkboard**. Each style
+changes the app’s colors and fonts; only the active style’s fonts load. Illustrated boards
+fall back to Classic if artwork is unavailable. Layout, style, and appearance are saved locally
+under `chesscoach.layout`, `chesscoach.boardStyle`, and `chesscoach.theme`.
+
+Chalkboard is the default for new users; an existing saved style choice is preserved.
+It pairs a textured green slate board with warm white squares and illustrated white/green
+chalk pieces. It includes matching light/dark colors and handwritten headings. The generated
+artwork and prompt record are documented in [`docs/chalkboard-artwork.json`](docs/chalkboard-artwork.json).
+
+Appearance and layout apply immediately. Options under **Next game**—color, strength, opponent,
+coaching depth, and handicap—are kept when you close settings with **Done**, and apply when you press **New game** in the header.
+The header button starts the game immediately. Engine and coaching
+availability appear under **About** in settings.
 
 Coach modes split work by purpose:
 
@@ -94,9 +115,13 @@ Deep Review deliberately keeps ordinary moves on Qwen 3.8 because Stockfish alre
 
 ```sh
 npm test       # lesson, handicap, Stockfish, and mocked AkashML proxy tests
+npm run test:ui # Chrome browser checks for layouts, settings, themes, and game interactions
 npm run build  # standalone app plus self-contained Artifact source in dist/
 npm start      # build and serve locally
 ```
+
+The UI checks use an installed Google Chrome. To use Playwright’s Chromium instead, run
+`npx playwright install chromium` followed by `PLAYWRIGHT_BROWSER=chromium npm run test:ui`.
 
 The server binds to `127.0.0.1` by default. Keep it behind a trusted LAN, VPN, or authenticated
 reverse proxy. Do not expose it directly to the public internet: `/api/coach` uses the server's API
@@ -127,21 +152,26 @@ chmod 600 .env
 Set `LLM_API_KEY` in `.env`, verify that host port `9123` is unused, and start it:
 
 ```sh
-docker compose config
+docker compose config --services
 docker compose up --build -d
 docker compose ps
 curl --fail http://127.0.0.1:9123/api/health
 ```
 
-Compose binds only to `127.0.0.1:9123`. Publish that loopback service with a new, unused Tailscale Serve HTTPS port, preserving the server's existing Serve configuration. Do not use Funnel: this app has no user authentication and is intended to remain Tailnet-only.
+Compose binds to `127.0.0.1:9123` and a configurable second private address (`CHESS_COACH_LAN_BIND`, default `127.0.0.2`). Publish that loopback service with a new, unused Tailscale Serve HTTPS port, preserving the server's existing Serve configuration. Do not use Funnel: this app has no user authentication and is intended to remain Tailnet-only.
 
 To update it later:
 
 ```sh
-docker compose build --pull
-docker compose up -d
-docker image prune -f
+# Preserve the current image for rollback before rebuilding
+docker tag chess-coach:local chess-coach:previous
+docker compose build chess-coach
+docker compose up -d --no-deps chess-coach
+curl --fail http://127.0.0.1:9123/api/health
 ```
+
+For frontend-only updates, this leaves the Maia sidecar running. Preserve the server’s `.env`
+and a source backup, and retain the previous image until verification is complete.
 
 Before every deployment, recheck the host and proxy ports rather than assuming the example values
 are free. `deploy/traefik/chess-coach.yml` is a template: replace its example hostname, certificate
