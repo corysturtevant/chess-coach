@@ -1,8 +1,8 @@
 # Chess Coach
 
-![Chess Coach with the default Chalkboard design](docs/chess-coach-chalkboard-dark.png)
+![Chess Coach Play together with the Chalkboard design and per-player Stockfish ratings](docs/chess-coach-play-together-dark.png)
 
-A responsive chess trainer with teaching games, a 24-lesson curriculum, objective Stockfish analysis, and optional AI-written coaching. It runs locally without an AI provider and automatically enables richer explanations when AkashML is configured.
+A responsive chess trainer with teaching games, same-device two-player chess, a 24-lesson curriculum, objective Stockfish ratings for both players, and optional AI-written coaching. It runs locally without an AI provider and automatically enables richer explanations when AkashML is configured.
 
 ## Run locally
 
