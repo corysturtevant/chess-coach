@@ -80,6 +80,17 @@ try {
   assert.equal(maiaAnalysis.maiaElo, 800);
   assert.equal(maiaAnalysis.assessment, 'blunder');
   assert.equal(maiaReceived.temperature, 1.15);
+  for (const payload of [
+    { beforeFen: '1r2k3/8/8/8/8/8/4K3/Q7 w - - 0 1', studentMove: 'a1b1', fen: '1r2k3/8/8/8/8/8/4K3/1Q6 b - - 1 1', expected: 'blunder' },
+    { beforeFen: 'rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq g3 0 2', studentMove: 'd8h4', fen: 'rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3', expected: 'great' }
+  ]) {
+    const response = await fetch(`http://127.0.0.1:${appPort}/api/analyze`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...payload, gradeOnly: true, level: 'improving' }) });
+    assert.equal(response.status, 200);
+    const grade = await response.json();
+    assert.equal(grade.assessment, payload.expected);
+    assert.equal(grade.gradingDepth, 12);
+    assert.equal(grade.coachMove, undefined, 'Grading does not select an opponent move');
+  }
   const response = await fetch(`http://127.0.0.1:${appPort}/api/coach`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: 'Reply with only JSON', json: true }) });
   assert.equal(response.status, 200);
   assert.deepEqual((await response.json()).json, { move: 'Nf3', plan: ['Develop'] });

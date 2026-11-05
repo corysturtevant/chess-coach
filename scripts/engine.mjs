@@ -18,7 +18,7 @@ function numericScore(kind, value) {
   return n > 0 ? 100_000 - Math.min(n, 999) * 100 : -100_000 - Math.max(n, -999) * 100;
 }
 
-export function analyzePosition(fen, { depth = 12, multiPv = 1, timeoutMs = 12_000 } = {}) {
+export function analyzePosition(fen, { depth = 12, multiPv = 1, timeoutMs = 12_000, searchMove } = {}) {
   return new Promise((resolvePromise, reject) => {
     const child = spawn(process.execPath, [enginePath], { stdio: ['pipe', 'pipe', 'pipe'] });
     const lines = new Map();
@@ -51,7 +51,7 @@ export function analyzePosition(fen, { depth = 12, multiPv = 1, timeoutMs = 12_0
         }
       }
     });
-    child.stdin.write(`uci\nsetoption name MultiPV value ${multiPv}\nisready\nposition fen ${fen}\ngo depth ${depth}\n`);
+    child.stdin.write(`uci\nsetoption name MultiPV value ${multiPv}\nisready\nposition fen ${fen}\ngo depth ${depth}${searchMove ? ` searchmoves ${searchMove}` : ''}\n`);
   });
 }
 
@@ -104,4 +104,18 @@ export async function analyzeTurn({ fen, beforeFen, studentMove, level = 'beginn
     result.gradingDepth = STUDENT_GRADE_DEPTH;
   }
   return result;
+}
+
+// Evaluate the played move from its original position, including moves that end
+// the game. Constraining the root avoids asking a terminal board for a reply.
+export async function gradeMove({ beforeFen, studentMove }) {
+  const [before, played] = await Promise.all([
+    analyzePosition(beforeFen, { depth: STUDENT_GRADE_DEPTH }),
+    analyzePosition(beforeFen, { depth: STUDENT_GRADE_DEPTH, searchMove: studentMove })
+  ]);
+  const beforeScoreCp = before.variations[0].scoreCp;
+  const afterScoreCp = played.variations[0].scoreCp;
+  const lossCp = Math.max(0, beforeScoreCp - afterScoreCp);
+  return { assessment: classifyLoss(lossCp, before.bestMove === studentMove), lossCp,
+    bestStudentMove: before.bestMove, beforeScoreCp, afterScoreCp, gradingDepth: STUDENT_GRADE_DEPTH };
 }

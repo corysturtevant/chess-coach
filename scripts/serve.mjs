@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { analyzeTurn } from './engine.mjs';
+import { analyzeTurn, gradeMove } from './engine.mjs';
 
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const port = Number(process.env.PORT) || 4173;
@@ -106,11 +106,13 @@ async function analyze(req, res) {
   const engineOk = body.opponentEngine == null || ['stockfish', 'maia'].includes(body.opponentEngine);
   const baseFenOk = body.baseFen == null || (typeof body.baseFen === 'string' && body.baseFen.length <= 120);
   const historyOk = body.moves == null || (Array.isArray(body.moves) && body.moves.length <= 400 && body.moves.every(move => typeof move === 'string' && /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(move)));
-  if (!fenOk || !beforeOk || !moveOk || !engineOk || !baseFenOk || !historyOk || !['beginner', 'improving', 'club'].includes(body.level)) {
+  const gradeOnlyOk = body.gradeOnly == null || (typeof body.gradeOnly === 'boolean' && (!body.gradeOnly || (typeof body.beforeFen === 'string' && typeof body.studentMove === 'string')));
+  if (!gradeOnlyOk || !fenOk || !beforeOk || !moveOk || !engineOk || !baseFenOk || !historyOk || !['beginner', 'improving', 'club'].includes(body.level)) {
     return json(res, 422, { error: 'invalid_request', detail: 'Provide valid chess positions, move, and difficulty.' });
   }
   activeEngineRequests++;
   try {
+    if (body.gradeOnly) return json(res, 200, await gradeMove(body));
     const stockfishPromise = analyzeTurn(body);
     if (body.opponentEngine !== 'maia') {
       const result = await stockfishPromise;

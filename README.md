@@ -69,6 +69,11 @@ Choose **Play together** to play another person on the same device. Enter both n
 choose **Stay fixed** (the default, White at the bottom) or **Flip each turn**, and
 start the game. There is no clock or handoff screen, and the computer never makes moves.
 
+Each move is rated by Stockfish at depth 12, with the player’s name on the rating bar
+and a rating dot in the move list. The board briefly waits for analysis; the engine never
+plays a reply. Ratings remain available when coaching is off. Failed analysis marks the
+move unrated and lets play continue.
+
 **Learn together** offers hints and questions on either player's turn and a shared review
 after the game. **Off** hides coaching. Undo asks the other player to agree before taking
 back one move. New game opens setup with a **Swap colors** shortcut. The gear also opens

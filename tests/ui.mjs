@@ -184,7 +184,7 @@ try {
   const togetherPage = await browser.newPage({ viewport: { width: 393, height: 852 } });
   togetherPage.on('pageerror', error => errors.push(error.message));
   let automaticAnalysis = 0;
-  await togetherPage.route('**/api/analyze', route => { automaticAnalysis++; return route.abort(); });
+  await togetherPage.route('**/api/analyze', route => { automaticAnalysis++;assert.equal(route.request().postDataJSON().gradeOnly,true);return route.fulfill({json:{assessment:'good',lossCp:20,bestStudentMove:route.request().postDataJSON().studentMove,coachMove:'a7a6'}}); });
   await togetherPage.goto(url);
   await togetherPage.locator('#tabTogether').click();
   assert.equal(await togetherPage.locator('#togetherSetup').isVisible(), true);
@@ -193,6 +193,7 @@ try {
   const playTogetherMove = async (from,to) => {
     await togetherPage.locator(`.sq[data-sq=${from}]`).click();
     await togetherPage.locator(`.sq[data-sq=${to}]`).click();
+    await togetherPage.waitForFunction(() => !document.querySelector('#undoBtn').disabled);
   };
   await playTogetherMove('e2','e4');
   assert.match(await togetherPage.locator('#statusText').innerText(), /Oliver/);
@@ -200,13 +201,19 @@ try {
   assert.equal(await togetherPage.locator('#hintBtn').isEnabled(), true);
   await playTogetherMove('e7','e5');
   assert.match(await togetherPage.locator('#statusText').innerText(), /Cory/);
-  assert.equal(automaticAnalysis, 0, 'Neither human move triggers an engine opponent');
+  assert.equal(automaticAnalysis, 2, 'Both moves request grading only');
+  assert.match(await togetherPage.locator('#gradePlayer').innerText(), /Oliver/i);
+  assert.equal(await togetherPage.locator('#gradeWord').textContent(), 'good');
+  assert.equal(await togetherPage.locator('#sheet .sheet-grade').count(), 2);
+  assert.equal(await togetherPage.locator('.sq[data-sq=a7]').getAttribute('aria-label'), 'a7 black pawn', 'Suggested engine moves are never played');
   await togetherPage.locator('#undoBtn').click();
   await togetherPage.locator('#declineUndo').click();
   assert.match(await togetherPage.locator('#sheet').innerText(), /e5/);
   await togetherPage.locator('#undoBtn').click();
   await togetherPage.locator('#approveUndo').click();
   assert.doesNotMatch(await togetherPage.locator('#sheet').innerText(), /e5/);
+  assert.match(await togetherPage.locator('#gradePlayer').innerText(), /Cory/i);
+  assert.equal(await togetherPage.locator('#sheet .sheet-grade').count(), 1);
   await togetherPage.locator('#tabPlay').click();
   assert.match(await togetherPage.locator('#sheet').innerText(), /No moves/);
   await togetherPage.locator('#tabLessons').click();
@@ -246,6 +253,34 @@ try {
   assert.match(await togetherPage.locator('#statusText').innerText(), /Cory resigned.*Oliver wins/);
 
   assert.equal(await togetherPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+
+  await togetherPage.locator('#newTopBtn').click();
+  await togetherPage.locator('#togetherForm button[type=submit]').click();
+  await togetherPage.unroute('**/api/analyze');
+  await togetherPage.route('**/api/analyze', route => route.fulfill({ status: 502, json: { error: 'engine_error' } }));
+  await playTogetherMove('e2','e4');
+  assert.equal(await togetherPage.locator('#gradeWord').innerText(), 'Unrated');
+  assert.equal(await togetherPage.locator('#sheet .sheet-grade').count(), 0);
+  assert.equal(await togetherPage.locator('#undoBtn').isEnabled(), true);
+
+  // A rating arriving after New game must not touch the new board or rating card.
+  await togetherPage.unroute('**/api/analyze');
+  let releaseGrade, gradeStarted;
+  const gradeGate = new Promise(resolve => releaseGrade = resolve);
+  const grading = new Promise(resolve => gradeStarted = resolve);
+  await togetherPage.route('**/api/analyze', async route => {
+    gradeStarted();await gradeGate;
+    await route.fulfill({json:{assessment:'blunder',lossCp:500,bestStudentMove:'e7e5'}});
+  });
+  await togetherPage.locator('.sq[data-sq=e7]').click();
+  await togetherPage.locator('.sq[data-sq=e5]').click();
+  await grading;
+  await togetherPage.locator('#newTopBtn').click();
+  await togetherPage.locator('#togetherForm button[type=submit]').click();
+  releaseGrade();
+  await togetherPage.waitForTimeout(100);
+  assert.match(await togetherPage.locator('#sheet').innerText(), /No moves/);
+  assert.equal(await togetherPage.locator('#gradeWord').textContent(), 'Make a move');
 
   // Finished games must still produce a review when the AI returns no answer.
   const reviewPage = await browser.newPage();

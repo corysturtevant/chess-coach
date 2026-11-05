@@ -381,7 +381,7 @@ body{font-size:16px;padding:0}.wrap{display:flex;padding:0;gap:0}.topbar{min-hei
       <section id="playPanel" class="col">
         <div class="move-cards">
           <article class="panel grade-card" id="gradeCard" role="img" aria-label="Move strength: waiting for your move">
-            <div class="grade-heading"><span class="eyebrow">You ·</span><strong id="gradeMove">—</strong></div>
+            <div class="grade-heading"><span class="eyebrow" id="gradePlayer">You ·</span><strong id="gradeMove">—</strong></div>
             <div class="grade-spectrum" id="gradeSpectrum">
               <div class="grade-segments"><i></i><i></i><i></i><i></i><i></i></div>
               <div class="grade-marker" id="gradeMarker" hidden></div>
@@ -690,7 +690,7 @@ function renderPlan(){
 
 /* ---------- persistence (per-viewer convenience) ---------- */
 function snapshot(){return {pgn:game.pgn(),player,level,tier,opponentEngine,odds,gameOdds,plan,moveGrades,resigned,last,lastByCoach,moveGrade,lastCoach,logItems:[...logItems]}}
-function useSnapshot(s){game=new Chess();if(s&&s.pgn)game.load_pgn(s.pgn);sel=null;last=s?.last||null;lastByCoach=!!s?.lastByCoach;plan=s?.plan||null;moveGrades=s?.moveGrades||[];resigned=!!s?.resigned;moveGrade=s?.moveGrade||null;lastCoach=s?.lastCoach||null;logItems=s?.logItems||[];if(s){player=s.player||'w';level=s.level||'beginner';tier=s.tier||'default';opponentEngine=s.opponentEngine||'stockfish';odds=s.odds||'none';gameOdds=s.gameOdds||'none'}}
+function useSnapshot(s){game=new Chess();if(s&&s.pgn)game.load_pgn(s.pgn);sel=null;last=s?.last||null;lastByCoach=!!s?.lastByCoach;plan=s?.plan||null;moveGrades=s?.moveGrades||[];resigned=!!s?.resigned;moveGrade=s?.moveGrade?.pending?null:s?.moveGrade||null;lastCoach=s?.lastCoach||null;logItems=s?.logItems||[];if(s){player=s.player||'w';level=s.level||'beginner';tier=s.tier||'default';opponentEngine=s.opponentEngine||'stockfish';odds=s.odds||'none';gameOdds=s.gameOdds||'none'}}
 function save(){try{
   if(mode==='play')savedPlay=snapshot();
   if(mode==='together')savedTogether=snapshot();
@@ -811,7 +811,7 @@ function statusText(){
   if(mode==='together'&&resigned)return playerName(game.turn())+' resigned. '+playerName(game.turn()==='w'?'b':'w')+' wins.';
   if(mode==='play'&&resigned)return 'You resigned. The coach wins.';
   if(coachAnimating&&coachNotice) return 'Coach played '+coachNotice;
-  if(busy) return 'Coach is thinking…';
+  if(busy) return mode==='together'&&moveGrade?.pending?'Rating '+moveGrade.playerName+'’s move…':'Coach is thinking…';
   if(game.in_checkmate()){const loser=game.turn();if(mode==='lesson')return 'Checkmate!';if(mode==='together')return 'Checkmate. '+playerName(loser==='w'?'b':'w')+' wins!';return loser===player?'Checkmate. The coach wins this one.':'Checkmate. You win!'}
   if(game.in_stalemate()) return 'Stalemate. The game is a draw.';
   if(game.in_threefold_repetition()) return 'Draw by repetition.';
@@ -829,6 +829,8 @@ const GRADE_TEXT={blunder:'var(--status-danger)',mistake:'var(--orange-text)',in
 function renderMoveGrade(){
   const card=$('gradeCard'),marker=$('gradeMarker'),segments=[...$('gradeSpectrum').querySelectorAll('.grade-segments i')],labels=[...$('gradeSpectrum').querySelectorAll('.grade-labels span')];
   segments.forEach(s=>s.style.opacity='.3');labels.forEach(s=>s.classList.remove('active'));
+  $('gradePlayer').textContent=mode==='together'?(moveGrade?.playerName||'Both players')+' ·':'You ·';
+  if(moveGrade&&(moveGrade.pending||moveGrade.unavailable)){card.classList.remove('awaiting');marker.hidden=true;$('gradeMove').textContent=moveGrade.moveLabel;$('gradeWord').textContent=moveGrade.pending?'Rating…':'Unrated';$('gradeLoss').textContent='';$('gradeFeedback').textContent=moveGrade.pending?'Stockfish is checking this move.':'Stockfish could not rate this move. You can keep playing.';$('gradeBest').hidden=true;card.setAttribute('aria-label',moveGrade.pending?'Rating move':'Move not rated');return}
   if(!moveGrade){marker.hidden=true;$('gradeMove').textContent='—';$('gradeWord').textContent='Make a move';$('gradeLoss').textContent='to see the coach’s grade';$('gradeFeedback').textContent='Stockfish will compare your move with the strongest continuation.';$('gradeBest').hidden=true;card.classList.add('awaiting');card.setAttribute('aria-label','Move strength: waiting for your move');return}
   card.classList.remove('awaiting');
   const grade=GRADE_ORDER.includes(moveGrade.assessment)?moveGrade.assessment:'good',idx=GRADE_ORDER.indexOf(grade);
@@ -853,7 +855,7 @@ function render(){
   $('status').classList.toggle('thinking',busy&&!coachAnimating);
   const notice=$('coachNotice');notice.hidden=!coachNotice;notice.textContent='';
   if(coachNotice){notice.append('Coach played ');const move=document.createElement('span');move.className='move';move.textContent=coachNotice+(lastCoach?' '+lastCoach.from+' → '+lastCoach.to:'');notice.append(move,' · your move');if(lastCoach&&lastCoach.why){notice.append(document.createElement('br'));const reason=document.createElement('span');reason.className='note';reason.textContent=lastCoach.why;notice.append(reason)}}
-  $('stopBtn').hidden=!busy||coachAnimating;
+  $('stopBtn').hidden=!busy||coachAnimating||(mode==='together'&&moveGrade?.pending);
   const coachTurn=mode==='play'&&!resigned&&!busy&&!game.game_over()&&game.turn()!==player;
   $('coachMoveBtn').hidden=!coachTurn;
   $('undoBtn').disabled=busy||game.history().length===0||mode==='lesson';
@@ -872,10 +874,10 @@ function render(){
   $('openCoachBtn').textContent=mode==='lesson'?'Lesson details':'Ask the coach';
   $('coachPanelTitle').textContent=mode==='lesson'?'Lessons':'Coach';
   $('coachPanel').setAttribute('aria-label',mode==='lesson'?'Lessons':'Coach');
-  $('togetherPanel').hidden=mode!=='together';$('playPanel').hidden=mode!=='play';$('lessonPanel').hidden=mode!=='lesson';
+  $('togetherPanel').hidden=mode!=='together';$('playPanel').hidden=mode==='lesson';$('lessonPanel').hidden=mode!=='lesson';
   if(mode==='together'){
     $('matchSummary').textContent=together.white+' vs '+together.black+' · '+(together.orientation==='fixed'?'Stay fixed':'Flip each turn');
-    $('coachPanel').setAttribute('aria-label','Play together');$('togetherTurn').textContent=statusText();$('togetherHelp').textContent=together.coaching==='learn'?'Hints are available to either player on their turn. Review the game together when it ends.':'A friendly match. Coaching is off.';
+    $('coachPanel').setAttribute('aria-label','Play together');$('togetherTurn').textContent=statusText();$('togetherHelp').textContent=together.coaching==='learn'?'Hints are available to either player on their turn. Review the game together when it ends.':'Move ratings stay on. Hints and coaching chat are off.';
     $('coachPanelTitle').textContent='Play together';$('openCoachBtn').textContent='Game details';
   }
   $('settingsTogetherBtn').hidden=mode!=='together';$('soloSettingsTitle').hidden=mode==='together';$('soloSettingsFields').hidden=mode==='together';
@@ -912,11 +914,28 @@ function userMove(from,to){
   sel=null; if(!mv){render();return}
   last={from,to};lastByCoach=false;coachNotice=null;
   if(mode==='lesson'){checkLesson(mv);return}
-  if(mode==='together'){lastByCoach=false;if(game.game_over())game.header('Result',game.in_checkmate()?(game.turn()==='w'?'0-1':'1-0'):'1/2-1/2');save();render();return}
+  if(mode==='together'){lastByCoach=false;moveGrade=null;if(game.game_over())game.header('Result',game.in_checkmate()?(game.turn()==='w'?'0-1':'1-0'):'1/2-1/2');save();rateTogetherMove(mv,before);return}
   before.studentMove=mv.from+mv.to+(mv.promotion||'');
   save(); render();
   if(game.game_over()){endGame();return}
   coachReply(mv,before);
+}
+
+async function rateTogetherMove(move,before){
+  const ratedGame=game,ply=game.history().length;
+  const label=Math.ceil(ply/2)+(move.color==='w'?'. ':'… ')+move.san;
+  moveGrade={pending:true,playerName:playerName(move.color),moveLabel:label};busy=true;render();
+  try{
+    if(!analyzer)throw new Error('Analysis unavailable');
+    const result=await analyzer({gradeOnly:true,fen:game.fen(),beforeFen:before.fen,studentMove:move.from+move.to+(move.promotion||''),level:'improving'});
+    if(game!==ratedGame)return;
+    if(!GRADE_ORDER.includes(result.assessment))throw new Error('Missing grade');
+    const best=sanFromUci(before.fen,result.bestStudentMove);
+    moveGrade={playerName:playerName(move.color),moveLabel:label,assessment:result.assessment,lossCp:result.lossCp,best,feedback:engineStudentFeedback(result,best)};
+    moveGrades.push({ply,...moveGrade});
+  }catch(e){if(game!==ratedGame)return;moveGrade={playerName:playerName(move.color),moveLabel:label,unavailable:true}}
+  if(game!==ratedGame)return;
+  busy=false;save();render();
 }
 
 /* ---------- AI coach (Claude Artifact or server-side AkashML) ---------- */
@@ -1378,7 +1397,7 @@ $('togetherForm').onsubmit=e=>{
   useSnapshot(null);game.header('White',together.white,'Black',together.black);save();$('togetherSetup').close();render();if(layoutPreference==='board')setCoachSheet(false);
 };
 $('declineUndo').onclick=()=>$('togetherUndo').close();
-$('approveUndo').onclick=()=>{if(mode==='together'&&game.history().length){game.undo();resigned=false;game.header('Result','*');const m=game.history({verbose:true}).at(-1);last=m?{from:m.from,to:m.to}:null;sel=null;save();render()}$('togetherUndo').close()};
+$('approveUndo').onclick=()=>{if(mode==='together'&&game.history().length){game.undo();resigned=false;game.header('Result','*');const m=game.history({verbose:true}).at(-1);last=m?{from:m.from,to:m.to}:null;sel=null;moveGrades=moveGrades.filter(g=>g.ply<=game.history().length);moveGrade=moveGrades.at(-1)||null;save();render()}$('togetherUndo').close()};
 
 /* ---------- responsive presentation ---------- */
 let coachReturnFocus=null;
