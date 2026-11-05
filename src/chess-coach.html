@@ -894,6 +894,8 @@ function errCopy(e){
   switch(e&&e.code){
     case 'rate_limited':return 'The coach is getting too many requests right now. Wait a minute and try again.';
     case 'session_expired':return 'Your Claude session expired. Sign in again to keep using the coach.';
+    case 'empty_response':return 'The AI coach returned no review text.';
+    case 'upstream_error':case 'server_error':return 'The AI coach is temporarily unavailable.';
     case 'refused':return 'The coach couldn’t answer that. Try asking a different way.';
     default:return 'The coach didn’t answer. Try again.';
   }
@@ -910,7 +912,7 @@ function makeServerSample(){
     }
     if(!response.ok){const e=new Error(data&&data.detail||'Coach request failed');e.code=data&&data.error||'server_error';throw e}
     if(jsonMode)return data.json;
-    const text=String(data.text||'');if(opts.onText)opts.onText({text});return text;
+    const text=String(data.text||'');if(!text.trim()){const e=new Error('Empty coach response');e.code='empty_response';throw e}if(opts.onText)opts.onText({text});return text;
   }
   const server=(prompt,opts)=>request(prompt,opts,false);
   server.json=(prompt,opts)=>request(prompt,opts,true);
@@ -1124,10 +1126,13 @@ async function streamCoach(prompt,title,purpose='question'){
   const item=addLog('coach',{text:'Thinking…',san:title||null});
   ctl=new AbortController();
   try{
-    await sample(prompt,{modelTier:tier,purpose,cache:false,signal:ctl.signal,onText:({text})=>{if(game===replyGame){item.text=text;renderLog()}}});
+    const result=await sample(prompt,{modelTier:tier,purpose,cache:false,signal:ctl.signal,onText:({text})=>{if(game===replyGame){item.text=text;renderLog()}}});
+    if(game===replyGame&&typeof result==='string'&&result.trim())item.text=result;
+    if(game===replyGame&&(!item.text.trim()||item.text==='Thinking…')){const e=new Error('Empty coach response');e.code='empty_response';throw e}
   }catch(e){
     if(game!==replyGame)return;
     if(e&&e.code==='cancelled'){item.text=(e.text||'')+(e.text?'\n':'')+'(stopped)'}
+    else if(purpose==='review'){disableSample(e);item.text='The AI review is unavailable right now. Here is a local summary of your game.\n\n'+localReview()}
     else if(disableSample(e)){item.text='The coach chat isn’t available in this view.'}
     else{item.text=(e&&e.text?e.text+'\n':'')+errCopy(e)}
   }

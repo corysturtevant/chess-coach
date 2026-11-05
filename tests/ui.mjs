@@ -181,6 +181,35 @@ try {
   await savedStylePage.waitForSelector('.sq');
   assert.equal(await savedStylePage.locator('html').getAttribute('data-board-style'), 'classic', 'Existing style preferences override the new default');
 
+  // Finished games must still produce a review when the AI returns no answer.
+  const reviewPage = await browser.newPage();
+  await reviewPage.addInitScript(() => localStorage.setItem('chesscoach.v1', JSON.stringify({
+    pgn: '1. f3 e5 2. g4 Qh4#', player: 'w', level: 'beginner', tier: 'deep', solved: [], moveGrades: [],
+  })));
+  await reviewPage.route('**/api/health', route => route.fulfill({ json: { status: 'ok', coach: 'akashml', model_configured: true } }));
+  let reviewResponse = { status: 502, json: { error: 'empty_response' } };
+  await reviewPage.route('**/api/coach', route => {
+    const request = route.request().postDataJSON();
+    assert.equal(request.purpose, 'review');
+    assert.match(request.prompt, /Qh4#/);
+    return route.fulfill(reviewResponse);
+  });
+  await reviewPage.goto(url);
+  await reviewPage.waitForFunction(() => document.querySelector('#coachAvail').textContent.includes('AkashML'));
+  for (const response of [
+    { status: 502, json: { error: 'empty_response' } },
+    { status: 502, json: { error: 'upstream_error' } },
+    { status: 200, json: { text: '' } },
+    { status: 200, json: { text: 'Protect your king before pushing flank pawns.' } },
+  ]) {
+    reviewResponse = response;
+    await reviewPage.locator('#reviewBtn').click();
+    await reviewPage.waitForFunction(() => !document.querySelector('#reviewBtn').disabled);
+    const text = await reviewPage.locator('#log').innerText();
+    assert.match(text, response.json.text ? /Protect your king/ : /Local review.*You played 2 moves/s);
+    assert.doesNotMatch(text, /Thinking…|didn’t answer/);
+  }
+
   // Finish the opening goals: the plan must continue and past turns must not
   // crowd the current position out of the panel.
   const longGame = await browser.newPage({ viewport: { width: 1512, height: 820 } });

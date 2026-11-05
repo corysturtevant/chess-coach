@@ -53,9 +53,9 @@ async function coach(req, res) {
   }
   const tier = ['quick', 'default', 'deep'].includes(body.tier) ? body.tier : 'default';
   const purpose = ['move', 'hint', 'review', 'question'].includes(body.purpose) ? body.purpose : 'question';
-  const deepRequest = tier === 'deep' && (purpose === 'review' || purpose === 'question');
+  const deepRequest = tier === 'deep' && purpose === 'question';
   const selectedModel = tier === 'quick' ? quickModel : deepRequest ? deepModel : model;
-  const maxTokens = deepRequest ? 1800 : body.json ? (tier === 'quick' ? 600 : 900) : (tier === 'quick' ? 700 : 1100);
+  const maxTokens = purpose === 'review' ? 4096 : deepRequest ? 1800 : body.json ? (tier === 'quick' ? 600 : 900) : (tier === 'quick' ? 700 : 1100);
   activeCoachRequests++;
   try {
     const upstream = await fetch(endpoint, {
@@ -68,7 +68,7 @@ async function coach(req, res) {
         system: 'You are Chess Coach, a warm and accurate chess teacher. Follow the requested response format exactly. Never claim a move is legal unless it appears in the supplied legal-move list.',
         messages: [{ role: 'user', content: body.prompt }]
       }),
-      signal: AbortSignal.timeout(deepRequest ? 60_000 : 30_000)
+      signal: AbortSignal.timeout(purpose === 'review' ? 60_000 : deepRequest ? 60_000 : 30_000)
     });
     if (!upstream.ok) {
       console.error(`AkashML request failed with HTTP ${upstream.status}`);
@@ -78,7 +78,10 @@ async function coach(req, res) {
     }
     const data = await upstream.json();
     const text = Array.isArray(data.content) ? data.content.filter(block => block && block.type === 'text').map(block => block.text || '').join('') : '';
-    if (!text.trim()) return json(res, 502, { error: 'empty_response', detail: 'The AI coach returned an empty response.' });
+    if (!text.trim()) {
+      console.error(`AkashML empty response: purpose=${purpose} tier=${tier} stop=${data.stop_reason || 'unknown'} output_tokens=${Number(data.usage?.output_tokens) || 0}`);
+      return json(res, 502, { error: 'empty_response', detail: 'The AI coach returned an empty response.' });
+    }
     if (body.json) {
       try { return json(res, 200, { json: parseModelJson(text) }); }
       catch { return json(res, 502, { error: 'invalid_response', detail: 'The AI coach returned invalid structured data.' }); }

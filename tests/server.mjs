@@ -17,12 +17,13 @@ async function freePort() {
 }
 
 let received;
+let upstreamResponse;
 const upstream = createServer(async (req, res) => {
   let text = '';
   for await (const chunk of req) text += chunk;
   received = { authorization: req.headers.authorization, body: JSON.parse(text) };
   res.writeHead(200, { 'content-type': 'application/json' });
-  res.end(JSON.stringify({ content: [{ type: 'text', text: '```json\n{"move":"Nf3","plan":["Develop"]}\n```' }] }));
+  res.end(JSON.stringify(upstreamResponse || { content: [{ type: 'text', text: '```json\n{"move":"Nf3","plan":["Develop"]}\n```' }] }));
 });
 upstream.listen(0, '127.0.0.1');
 await once(upstream, 'listening');
@@ -91,11 +92,19 @@ try {
   assert.equal(received.body.max_tokens, 600);
   const deepResponse = await fetch(`http://127.0.0.1:${appPort}/api/coach`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: 'Review this game', tier: 'deep', purpose: 'review' }) });
   assert.equal(deepResponse.status, 200);
+  assert.equal(received.body.model, 'fixture-model');
+  assert.equal(received.body.max_tokens, 4096);
+  await fetch(`http://127.0.0.1:${appPort}/api/coach`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: 'Explain a chess concept', tier: 'deep', purpose: 'question' }) });
   assert.equal(received.body.model, 'fixture-deep');
   assert.equal(received.body.max_tokens, 1800);
   const deepMoveResponse = await fetch(`http://127.0.0.1:${appPort}/api/coach`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: 'Choose the engine move', tier: 'deep', purpose: 'move', json: true }) });
   assert.equal(deepMoveResponse.status, 200);
   assert.equal(received.body.model, 'fixture-model');
+  upstreamResponse = { stop_reason: 'max_tokens', usage: { output_tokens: 4096 }, content: [{ type: 'thinking', thinking: 'private reasoning' }] };
+  const emptyReview = await fetch(`http://127.0.0.1:${appPort}/api/coach`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: 'Review completed game', purpose: 'review' }) });
+  assert.equal(emptyReview.status, 502);
+  assert.equal((await emptyReview.json()).error, 'empty_response');
+  assert.equal(received.body.max_tokens, 4096);
   console.log('ok   server: Stockfish analysis plus AkashML proxy and structured response');
 } finally {
   app.kill('SIGTERM');
