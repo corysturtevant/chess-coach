@@ -1,3 +1,7 @@
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+const testDataDir = await mkdtemp(join(tmpdir(), 'chess-test-'));
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
@@ -42,7 +46,7 @@ const maiaPort = maiaUpstream.address().port;
 const appPort = await freePort();
 const app = spawn(process.execPath, ['scripts/serve.mjs'], {
   cwd: new URL('..', import.meta.url),
-  env: { ...process.env, PORT: String(appPort), LLM_API_KEY: 'akml-test-only', LLM_MODEL: 'fixture-model', LLM_MODEL_QUICK: 'fixture-quick', LLM_MODEL_DEEP: 'fixture-deep', AKASHML_API_URL: `http://127.0.0.1:${upstreamPort}/messages`, MAIA_API_URL: `http://127.0.0.1:${maiaPort}/move` },
+  env: { ...process.env, DATA_DIR: testDataDir, PORT: String(appPort), LLM_API_KEY: 'akml-test-only', LLM_MODEL: 'fixture-model', LLM_MODEL_QUICK: 'fixture-quick', LLM_MODEL_DEEP: 'fixture-deep', AKASHML_API_URL: `http://127.0.0.1:${upstreamPort}/messages`, MAIA_API_URL: `http://127.0.0.1:${maiaPort}/move` },
   stdio: ['ignore', 'pipe', 'pipe']
 });
 
@@ -119,6 +123,8 @@ try {
   console.log('ok   server: Stockfish analysis plus AkashML proxy and structured response');
 } finally {
   app.kill('SIGTERM');
+  if (app.exitCode === null) await once(app, 'exit');
+  await rm(testDataDir, { recursive: true, force: true });
   await new Promise(resolve => upstream.close(resolve));
   await new Promise(resolve => maiaUpstream.close(resolve));
 }

@@ -9,6 +9,7 @@ services:
       - "127.0.0.1:${CHESS_COACH_PORT:-9123}:8000"
       - "${CHESS_COACH_LAN_BIND:-127.0.0.2}:${CHESS_COACH_PORT:-9123}:8000"
     environment:
+      DATA_DIR: /data
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_PROVIDER: akashml
       LLM_MODEL: ${LLM_MODEL:-Qwen/Qwen3.8-27B}
@@ -16,6 +17,8 @@ services:
       LLM_MODEL_DEEP: ${LLM_MODEL_DEEP:-}
       MAIA_API_URL: http://maia:8001/move
       TZ: ${TZ:-America/Los_Angeles}
+    volumes:
+      - chess-coach-data:/data
     depends_on:
       maia:
         condition: service_started
@@ -60,3 +63,6 @@ services:
       timeout: 5s
       start_period: 60s
       retries: 3
+
+volumes:
+  chess-coach-data:

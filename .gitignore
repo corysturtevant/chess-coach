@@ -10,3 +10,5 @@ dist/
 *.pfx
 secrets/
 .DS_Store
+
+.data/

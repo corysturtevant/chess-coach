@@ -15,11 +15,13 @@ WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY scripts/serve.mjs ./scripts/serve.mjs
 COPY scripts/engine.mjs ./scripts/engine.mjs
+COPY scripts/profiles.mjs ./scripts/profiles.mjs
 COPY --from=build /app/node_modules/stockfish/bin/stockfish-19-lite-single.js ./node_modules/stockfish/bin/stockfish-19-lite-single.js
 COPY --from=build /app/node_modules/stockfish/bin/stockfish-19-lite-single.wasm ./node_modules/stockfish/bin/stockfish-19-lite-single.wasm
 RUN addgroup -S -g 10001 chesscoach \
  && adduser -S -D -H -u 10001 -G chesscoach chesscoach \
- && chown -R chesscoach:chesscoach /app
+ && mkdir -p /data \
+ && chown -R chesscoach:chesscoach /app /data
 USER chesscoach
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \

@@ -81,7 +81,34 @@ settings relevant to the current mode. Promotion currently becomes a queen autom
 
 The two-player game and player options are saved separately from the coach game. Switching
 between Play, Play together, and Lessons preserves both games; reloading resumes Play together
-when it was active. Everything is stored in this browser, with no account or network match needed.
+when it was active. Choose a player profile to sync these games with the server, or leave
+Players unselected to keep using browser-only storage. Play together remains a same-device game.
+
+## Player profiles and saved games
+
+Use **Players** in the header to select **Cory**, **Oliver**, or add another player.
+Select the same player on another device connected to the same server to resume their games.
+Each profile stores its coach game, two-player game, lesson progress, game history, move
+ratings, and saved review responses. Choose registered players in Play together setup to
+include the game in both participants' histories. Guest names do not create profiles.
+
+On first selection, **Import this device’s current games into an empty profile** explicitly
+copies existing browser data; otherwise a new profile starts fresh. A local backup of the
+pre-switch state is retained. Saved games are available in the player picker with their
+PGN and saved review text. Interactive guided replay is a separate future feature.
+
+Changes sync after moves and coaching responses. Other devices refresh when focused or
+periodically while idle. Offline changes stay cached locally; conflicting edits are blocked
+instead of overwriting a newer server game. Use **Load latest saved game** in Players to
+recover; the conflicting local state is retained as a backup. The browser must reconnect
+and sync before switching profiles or starting a new game.
+
+Profiles are a simple trusted-family picker, **not authenticated accounts**. Anyone who can
+reach this server can select any player. Use the existing private deployment access controls.
+Sync requires the Node backend; a standalone static preview keeps browser-only storage.
+
+See [player rating research](docs/player-ratings.md) for Elo/Glicko options. No estimated
+player rating is displayed yet; per-move ratings are separate from a player's playing strength.
 
 ## Interface and appearance
 
@@ -158,7 +185,7 @@ If an older shortcut already exists, remove it and add it again because iPadOS c
 
 ## Docker and Proxmox deployment
 
-The container is stateless: lesson progress and the current game remain in each browser's local storage. No host data volume is required. The image runs as UID/GID `10001`, uses a read-only filesystem, drops all Linux capabilities, and includes an HTTP health check.
+Profile data persists in the `chess-coach-data` Docker volume at `/data/profiles.json`. Back up this volume along with deployment configuration; do not use `docker compose down -v` unless deliberately deleting all profiles and history. For a consistent backup, stop the app container before copying the data and start it afterward. Restore with ownership UID/GID `10001`. Local development uses `.data/` (gitignored), configurable with `DATA_DIR`. This JSON store supports one Node process; multiple replicas need a shared transactional database. The image runs as UID/GID `10001`, uses a read-only filesystem, drops all Linux capabilities, and includes an HTTP health check.
 
 On the Proxmox app container or VM:
 

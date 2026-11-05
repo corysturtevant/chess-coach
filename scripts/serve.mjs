@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createProfileStore } from './profiles.mjs';
 import { analyzeTurn, gradeMove } from './engine.mjs';
 
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
@@ -19,6 +20,7 @@ const maiaLevels = {
   club: { elo: 1600, temperature: 0.85, topP: 0.9 }
 };
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.webp': 'image/webp', '.webmanifest': 'application/manifest+json; charset=utf-8' };
+const profiles = createProfileStore(process.env.DATA_DIR || resolve('.data'));
 let activeCoachRequests = 0;
 let activeEngineRequests = 0;
 
@@ -27,11 +29,11 @@ function json(res, status, value) {
   res.end(JSON.stringify(value));
 }
 
-async function readJson(req) {
+async function readJson(req, limit = 64_000) {
   let text = '';
   for await (const chunk of req) {
     text += chunk;
-    if (text.length > 64_000) throw Object.assign(new Error('Request too large'), { status: 413 });
+    if (text.length > limit) throw Object.assign(new Error('Request too large'), { status: 413 });
   }
   try { return JSON.parse(text || '{}'); }
   catch { throw Object.assign(new Error('Invalid JSON'), { status: 400 }); }
@@ -154,6 +156,19 @@ async function analyze(req, res) {
 
 createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
+  if (url.pathname.startsWith('/api/profiles')) {
+    try {
+      if (!['GET','POST','PUT'].includes(req.method)) return json(res,405,{error:'Method not allowed'});
+      if(req.method!=='GET'&&req.headers.origin&&new URL(req.headers.origin).host!==req.headers.host)return json(res,403,{error:'Cross-origin profile changes are not allowed'});
+      const path=url.pathname.split('/').filter(Boolean);
+      if(path.length===2&&req.method==='GET')return json(res,200,{profiles:await profiles.list()});
+      if(path.length===2&&req.method==='POST')return json(res,201,await profiles.create((await readJson(req)).name));
+      if(path.length===3&&req.method==='GET')return json(res,200,await profiles.get(path[2]));
+      if(path.length===3&&req.method==='PUT'){const body=await readJson(req,512_000);return json(res,200,await profiles.put(path[2],body.revision,body.state));}
+      if(path.length===5&&path[3]==='games'&&req.method==='GET')return json(res,200,await profiles.game(path[2],decodeURIComponent(path[4])));
+      return json(res,404,{error:'Not found'});
+    }catch(e){if(!e.status)console.error('Profile storage failed:',e.code||e.name);return json(res,e.status||500,{error:e.status?e.message:'Profile storage is unavailable. Your local game is preserved.'});}
+  }
   if (url.pathname === '/api/health' && req.method === 'GET') {
     return json(res, 200, { status: 'ok', coach: apiKey ? 'akashml' : 'local', model_configured: Boolean(apiKey) });
   }

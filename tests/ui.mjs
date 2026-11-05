@@ -1,3 +1,7 @@
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+const testDataDir = await mkdtemp(join(tmpdir(), 'chess-test-'));
 // Run after npm run build. Uses installed Chrome; set PLAYWRIGHT_BROWSER=chromium
 // to use a Playwright-managed Chromium installation instead.
 import { chromium } from '@playwright/test';
@@ -8,7 +12,7 @@ import { once } from 'node:events';
 const port = 14175;
 const url = `http://127.0.0.1:${port}`;
 const server = spawn(process.execPath, ['scripts/serve.mjs'], {
-  env: { ...process.env, PORT: String(port), LLM_API_KEY: '', MAIA_API_URL: '' },
+  env: { ...process.env, DATA_DIR: testDataDir, PORT: String(port), LLM_API_KEY: '', MAIA_API_URL: '' },
   stdio: 'ignore',
 });
 let browser;
@@ -401,4 +405,5 @@ try {
   await browser?.close();
   server.kill();
   if (server.exitCode === null) await once(server, 'exit');
+  await rm(testDataDir, { recursive: true, force: true });
 }

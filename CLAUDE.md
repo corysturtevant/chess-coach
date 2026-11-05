@@ -140,3 +140,11 @@ and keep the `<title>` as "Chess Coach". Store the private Artifact URL outside 
 - Evaluation bar using the existing server-side Stockfish analysis
 - More lessons (endgames: opposition, Lucena, Philidor)
 - Importing a PGN from Chess.com/Lichess for review
+
+## Profile storage invariants
+
+- `scripts/profiles.mjs` serializes atomic JSON writes in one Node process. Keep `DATA_DIR` persistent; Docker mounts `/data` owned by UID 10001. Never commit profile data.
+- Profile PUT uses revision compare-and-swap; return 409 on stale writes. Keep offline dirty state and block destructive profile switches until synced.
+- Profile state owns separate solo/together snapshots, solved lessons, stable game IDs, saved review text and move ratings. Shared history references registered participants; guests are names only.
+- Profiles are not authentication. Keep the deployment private. Do not claim a family profile picker enforces identity.
+- Run `npm test` and `npm run test:ui`; profile tests use temporary data directories and independent browser contexts.
