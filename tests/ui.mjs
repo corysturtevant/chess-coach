@@ -181,6 +181,72 @@ try {
   await savedStylePage.waitForSelector('.sq');
   assert.equal(await savedStylePage.locator('html').getAttribute('data-board-style'), 'classic', 'Existing style preferences override the new default');
 
+  const togetherPage = await browser.newPage({ viewport: { width: 393, height: 852 } });
+  togetherPage.on('pageerror', error => errors.push(error.message));
+  let automaticAnalysis = 0;
+  await togetherPage.route('**/api/analyze', route => { automaticAnalysis++; return route.abort(); });
+  await togetherPage.goto(url);
+  await togetherPage.locator('#tabTogether').click();
+  assert.equal(await togetherPage.locator('#togetherSetup').isVisible(), true);
+  assert.equal(await togetherPage.locator('#togetherOrientation').inputValue(), 'fixed');
+  await togetherPage.locator('#togetherForm button[type=submit]').click();
+  const playTogetherMove = async (from,to) => {
+    await togetherPage.locator(`.sq[data-sq=${from}]`).click();
+    await togetherPage.locator(`.sq[data-sq=${to}]`).click();
+  };
+  await playTogetherMove('e2','e4');
+  assert.match(await togetherPage.locator('#statusText').innerText(), /Oliver/);
+  assert.equal(await togetherPage.locator('.sq').first().getAttribute('data-sq'), 'a8');
+  assert.equal(await togetherPage.locator('#hintBtn').isEnabled(), true);
+  await playTogetherMove('e7','e5');
+  assert.match(await togetherPage.locator('#statusText').innerText(), /Cory/);
+  assert.equal(automaticAnalysis, 0, 'Neither human move triggers an engine opponent');
+  await togetherPage.locator('#undoBtn').click();
+  await togetherPage.locator('#declineUndo').click();
+  assert.match(await togetherPage.locator('#sheet').innerText(), /e5/);
+  await togetherPage.locator('#undoBtn').click();
+  await togetherPage.locator('#approveUndo').click();
+  assert.doesNotMatch(await togetherPage.locator('#sheet').innerText(), /e5/);
+  await togetherPage.locator('#tabPlay').click();
+  assert.match(await togetherPage.locator('#sheet').innerText(), /No moves/);
+  await togetherPage.locator('#tabLessons').click();
+  await togetherPage.locator('#tabTogether').click();
+  assert.match(await togetherPage.locator('#sheet').innerText(), /e4/);
+  await togetherPage.reload();
+  assert.equal(await togetherPage.locator('#tabTogether').getAttribute('aria-selected'), 'true');
+  assert.match(await togetherPage.locator('#sheet').innerText(), /e4/);
+  await togetherPage.locator('#newTopBtn').click();
+  await togetherPage.locator('#togetherOrientation').selectOption('flip');
+  await togetherPage.locator('#togetherCoaching').selectOption('off');
+  await togetherPage.locator('#togetherForm button[type=submit]').click();
+  await playTogetherMove('f2','f3');
+  assert.equal(await togetherPage.locator('.sq').first().getAttribute('data-sq'), 'h1');
+  assert.equal(await togetherPage.locator('#hintBtn').isVisible(), false);
+  assert.equal(await togetherPage.locator('#askForm').isVisible(), false);
+  await playTogetherMove('e7','e5');
+  await playTogetherMove('g2','g4');
+  await playTogetherMove('d8','h4');
+  assert.match(await togetherPage.locator('#statusText').innerText(), /Checkmate.*Oliver wins/);
+  assert.match(await togetherPage.evaluate(() => JSON.parse(localStorage.getItem('chesscoach.together')).game.pgn), /0-1/);
+  await togetherPage.locator('#settingsBtn').click();
+  assert.equal(await togetherPage.locator('#soloSettingsFields').isVisible(), false);
+  await togetherPage.locator('#settingsTogetherBtn').click();
+  await togetherPage.locator('#togetherCoaching').selectOption('learn');
+  await togetherPage.locator('#swapNames').click();
+  await togetherPage.locator('#togetherForm button[type=submit]').click();
+  assert.match(await togetherPage.locator('#statusText').innerText(), /Oliver/);
+  for (const [from,to] of [['f2','f3'],['e7','e5'],['g2','g4'],['d8','h4']]) await playTogetherMove(from,to);
+  await togetherPage.locator('#reviewBtn').click();
+  assert.match(await togetherPage.locator('#log').innerText(), /Local shared review.*Oliver.*Cory/s);
+  await togetherPage.locator('#undoBtn').click();
+  await togetherPage.locator('#approveUndo').click();
+  await togetherPage.locator('#moreActions summary').click();
+  await togetherPage.locator('#resignBtn').click();
+  await togetherPage.locator('#confirmResignBtn').click();
+  assert.match(await togetherPage.locator('#statusText').innerText(), /Cory resigned.*Oliver wins/);
+
+  assert.equal(await togetherPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+
   // Finished games must still produce a review when the AI returns no answer.
   const reviewPage = await browser.newPage();
   await reviewPage.addInitScript(() => localStorage.setItem('chesscoach.v1', JSON.stringify({

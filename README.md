@@ -63,6 +63,21 @@ for assessment labels, centipawn loss, and the suggested better move. See
 
 After every coach move, the board stays locked for a 700 ms reveal: the piece visibly travels from its origin to its destination, the move squares receive a strong highlight, and a persistent `Coach played …` notice remains until the student moves.
 
+## Play together
+
+Choose **Play together** to play another person on the same device. Enter both names,
+choose **Stay fixed** (the default, White at the bottom) or **Flip each turn**, and
+start the game. There is no clock or handoff screen, and the computer never makes moves.
+
+**Learn together** offers hints and questions on either player's turn and a shared review
+after the game. **Off** hides coaching. Undo asks the other player to agree before taking
+back one move. New game opens setup with a **Swap colors** shortcut. The gear also opens
+settings relevant to the current mode. Promotion currently becomes a queen automatically.
+
+The two-player game and player options are saved separately from the coach game. Switching
+between Play, Play together, and Lessons preserves both games; reloading resumes Play together
+when it was active. Everything is stored in this browser, with no account or network match needed.
+
 ## Interface and appearance
 
 The play screen follows the v2 redesign: a larger board, a horizontal graded move list,

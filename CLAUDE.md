@@ -104,7 +104,7 @@ Error handling branches on `e.code` (never `e.message`). Permanent codes (`not_g
 ## App state (top of the main IIFE)
 
 - `game`: chess.js instance. **chess.js 0.10.3 uses snake_case** (`in_check`, `game_over`, `load_pgn`, `in_checkmate`), not the 1.x camelCase API.
-- `mode`: `'play' | 'lesson'`. `savedPlay` keeps the play game while in lessons.
+- `mode`: `'play' | 'together' | 'lesson'`. `snapshot()` / `useSnapshot()` preserve separate coach and two-player games during mode switches. `chesscoach.together` stores the latter plus names/orientation/coaching; `chesscoach.mode` resumes the active two-player game.
 - `player` (`'w'|'b'`), `level` (`beginner|improving|club`), `tier` (`default|quick`)
 - `odds` (selected for the next game) and `gameOdds` (what the current game started with). Keys are in `ODDS`.
 - `plan`, `logItems`, `solved` (lesson ids), `busy`, `ctl` (AbortController for the in-flight Claude call)
@@ -122,6 +122,7 @@ Error handling branches on `e.code` (never `e.message`). Permanent codes (`not_g
 - **Responsive layout**: above 1400px, fit the square board to both viewport dimensions and scroll long coaching inside the panel. Keep the ask box accessible. Board-only lessons have a Lesson details button that reopens the drawer.
 - **New game**: the header starts a game immediately using pending settings; Done closes settings. Ignore stale engine/coaching results after a reset.
 - **Lesson browser**: Choose lesson opens a separate dialog with wrapping filters and one scrolling catalog; keep exercise controls in the coach panel.
+- **Play together**: both sides use `userMove()` without an engine call. Orientation is fixed White by default or follows `game.turn()`. Hints use the active player’s color; shared reviews cover both names. Undo is one ply after an agreement dialog. Keep solo state isolated and never trigger `coachReply()` in this mode.
 - **Handicap**: `ODDS` + `startFen(key, coachColor)` remove pieces from the coach's side and fix castling rights. `oddsLine()` tells Claude about the handicap. `endGame()` suggests the next odds level up or down.
 - **Plan card**: `renderPlan()`. Coach plan when fresh, else `basicPlan()` (pieces under attack via `attackedBy()`, undeveloped minors, castling, center, then follow-on goals). Current cards and the plan precede questions; older coaching is collapsed under Earlier coaching. Feed children must not shrink as history grows.
 - **Lessons**: `LESSONS` array with `{id, unit, difficulty, title, concept, fen, sol, task, hint, explain}`. `sol` is SAN. A match ignores `+`/`#`. Hints and explanations are static (no Claude cost).

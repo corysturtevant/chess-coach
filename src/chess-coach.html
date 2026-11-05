@@ -148,6 +148,7 @@ select,textarea{font:14px var(--f-body);color:var(--ink);background:var(--surfac
   .lesson{min-height:76px}
   .lesson-filters{overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch}
 }
+.together-dialog{width:min(92vw,480px);max-height:85dvh;overflow:auto;border:1px solid var(--hairline);border-radius:20px;background:var(--card);color:var(--ink);padding:24px}.together-dialog::backdrop{background:#0008}.together-dialog h2{font-family:var(--f-display);font-size:30px;margin-top:0}.together-dialog label{display:grid;gap:8px;margin:18px 0;font-weight:700}.together-dialog input,.together-dialog select{width:100%;min-width:0;padding:12px;border:1px solid var(--hairline);border-radius:10px;background:var(--paper);color:var(--ink);font:inherit}.together-names{display:grid;grid-template-columns:1fr 1fr;gap:12px}.together-dialog .row{flex-wrap:wrap}#togetherPanel h2{font:700 30px var(--f-display)}:root[data-mode="together"] #planPanel,:root[data-mode="together"] .board-grade{display:none!important}@media(max-width:600px){.tabs{gap:4px}.tab{min-width:0!important;padding-left:12px;padding-right:12px;font-size:13px}}
 </style>
 <style>
 /* 2026 Sturtevant.Team redesign. The aliases keep the app logic and lesson UI theme-safe. */
@@ -336,6 +337,7 @@ body{font-size:16px;padding:0}.wrap{display:flex;padding:0;gap:0}.topbar{min-hei
     </div>
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" id="tabPlay" aria-selected="true">Play</button>
+      <button class="tab" role="tab" id="tabTogether" aria-selected="false">Play together</button>
       <button class="tab" role="tab" id="tabLessons" aria-selected="false">Lessons</button>
     </div>
     <div class="header-actions">
@@ -375,6 +377,7 @@ body{font-size:16px;padding:0}.wrap{display:flex;padding:0;gap:0}.topbar{min-hei
     <aside class="col coach-panel" id="coachPanel" aria-label="Coach">
       <div class="coach-heading"><h2 id="coachPanelTitle">Coach</h2><button class="icon-btn" id="closeCoachBtn" aria-label="Close coach">×</button></div>
       <div class="coach-feed" id="coachFeed">
+      <section id="togetherPanel" class="panel" hidden><span class="eyebrow">Same device · two players</span><h2 id="togetherTurn">Your game, together</h2><p id="togetherHelp"></p><button class="btn" id="togetherSetupBtn">Game setup</button></section>
       <section id="playPanel" class="col">
         <div class="move-cards">
           <article class="panel grade-card" id="gradeCard" role="img" aria-label="Move strength: waiting for your move">
@@ -471,7 +474,7 @@ body{font-size:16px;padding:0}.wrap{display:flex;padding:0;gap:0}.topbar{min-hei
       <button class="style-choice" type="button" role="radio" data-board-choice="chalkboard"><span class="style-preview chalkboard" aria-hidden="true"></span><span class="style-copy"><strong>Chalkboard</strong><small>Green slate and white chalk</small></span><span class="style-radio" aria-hidden="true"></span></button>
     </div></fieldset>
     <fieldset class="theme-field"><legend class="eyebrow">Appearance</legend><div class="theme-options" aria-label="Appearance"><button type="button" data-theme-choice="system">Auto</button><button type="button" data-theme-choice="light">Light</button><button type="button" data-theme-choice="dark">Dark</button></div></fieldset>
-    <h3 class="eyebrow">Next game</h3><div class="drawer-fields">
+    <button class="btn" id="settingsTogetherBtn" hidden>Set up a two-player game</button><h3 class="eyebrow" id="soloSettingsTitle">Next coach game</h3><div class="drawer-fields" id="soloSettingsFields">
       <label class="fld" for="colorSel">You play
         <select id="colorSel"><option value="w">White</option><option value="b">Black</option></select>
       </label>
@@ -508,6 +511,8 @@ body{font-size:16px;padding:0}.wrap{display:flex;padding:0;gap:0}.topbar{min-hei
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.js"></script>
+<dialog id="togetherSetup" class="together-dialog" aria-labelledby="togetherSetupTitle"><form id="togetherForm"><h2 id="togetherSetupTitle">A game together</h2><p>No clock, no rush. Both players use this board.</p><div class="together-names"><label>White<input id="whiteName" maxlength="24" value="Cory" required></label><label>Black<input id="blackName" maxlength="24" value="Oliver" required></label></div><label>Board orientation<select id="togetherOrientation"><option value="fixed">Stay fixed</option><option value="flip">Flip each turn</option></select></label><label>Coaching<select id="togetherCoaching"><option value="learn">Learn together</option><option value="off">Off</option></select></label><p class="note">Hints when you ask. A shared review after the game.</p><div class="row"><button class="btn" type="button" id="swapNames">Swap colors</button><button class="btn" type="button" id="cancelTogether">Cancel</button><button class="btn primary" type="submit">Start new game</button></div><p class="note">Starting replaces the current two-player game. Your coach game is kept separately.</p></form></dialog>
+<dialog id="togetherUndo" class="together-dialog" aria-labelledby="undoTitle"><h2 id="undoTitle">Take back a move?</h2><p id="undoQuestion"></p><div class="row"><button class="btn" id="declineUndo">Keep playing</button><button class="btn primary" id="approveUndo">Agree and undo</button></div></dialog>
 <script>
 (function(){
 const $=id=>document.getElementById(id);
@@ -579,6 +584,9 @@ let plan=null; // {items:[...], src:'coach', ply:n} — valid while game.history
 let odds='none', gameOdds='none'; // odds = selected for next game; gameOdds = what the current game was started with
 let moveGrade=null, lastCoach=null, moveGrades=[];
 let resigned=false;
+let together={white:'Cory',black:'Oliver',orientation:'fixed',coaching:'learn'},savedTogether=null;
+function playerName(color){return together[color==='w'?'white':'black']}
+function studentColor(){return mode==='together'?game.turn():player}
 let themePreference='system';
 let boardStyle='chalkboard';
 let layoutPreference='coach';
@@ -644,7 +652,7 @@ function attackedBy(color){
   return new Set(g.moves({verbose:true}).filter(m=>m.captured).map(m=>m.to));
 }
 function basicPlan(){
-  const me=player, opp=me==='w'?'b':'w', items=[];
+  const me=studentColor(), opp=me==='w'?'b':'w', items=[];
   if(game.in_check()) items.push('You’re in check: move the king, block, or capture the checking piece.');
   const hit=attackedBy(opp); let worst=null;
   for(const sq of hit){const p=game.get(sq);if(p&&p.color===me&&p.type!=='k'&&(!worst||VAL[p.type]>VAL[worst.p.type]))worst={sq,p}}
@@ -681,7 +689,16 @@ function renderPlan(){
 }
 
 /* ---------- persistence (per-viewer convenience) ---------- */
-function save(){try{localStorage.setItem('chesscoach.v1',JSON.stringify({pgn:mode==='play'?game.pgn():(savedPlay&&savedPlay.pgn)||'',player,level,tier,opponentEngine,odds,gameOdds,solved:[...solved],plan,moveGrades,resigned}))}catch(e){}}
+function snapshot(){return {pgn:game.pgn(),player,level,tier,opponentEngine,odds,gameOdds,plan,moveGrades,resigned,last,lastByCoach,moveGrade,lastCoach,logItems:[...logItems]}}
+function useSnapshot(s){game=new Chess();if(s&&s.pgn)game.load_pgn(s.pgn);sel=null;last=s?.last||null;lastByCoach=!!s?.lastByCoach;plan=s?.plan||null;moveGrades=s?.moveGrades||[];resigned=!!s?.resigned;moveGrade=s?.moveGrade||null;lastCoach=s?.lastCoach||null;logItems=s?.logItems||[];if(s){player=s.player||'w';level=s.level||'beginner';tier=s.tier||'default';opponentEngine=s.opponentEngine||'stockfish';odds=s.odds||'none';gameOdds=s.gameOdds||'none'}}
+function save(){try{
+  if(mode==='play')savedPlay=snapshot();
+  if(mode==='together')savedTogether=snapshot();
+  localStorage.setItem('chesscoach.v1',JSON.stringify({...savedPlay,solved:[...solved]}));
+  localStorage.setItem('chesscoach.together',JSON.stringify({options:together,game:savedTogether}));
+  localStorage.setItem('chesscoach.mode',mode);
+}catch(e){}}
+
 function restore(){
   try{
     const s=JSON.parse(localStorage.getItem('chesscoach.v1')||'null'); if(!s) return false;
@@ -723,7 +740,7 @@ function renderLog(){
 }
 
 /* ---------- board ---------- */
-function orientation(){return mode==='lesson'?'w':player}
+function orientation(){return mode==='lesson'?'w':mode==='together'?(together.orientation==='flip'?game.turn():'w'):player}
 function boardPoint(sq){
   const flip=orientation()==='b',file=FILES.indexOf(sq[0]),rank=Number(sq[1]);
   return {x:flip?7-file:file,y:flip?rank-1:8-rank};
@@ -791,15 +808,17 @@ function renderSheet(){
   el.scrollLeft=el.scrollWidth;
 }
 function statusText(){
+  if(mode==='together'&&resigned)return playerName(game.turn())+' resigned. '+playerName(game.turn()==='w'?'b':'w')+' wins.';
   if(mode==='play'&&resigned)return 'You resigned. The coach wins.';
   if(coachAnimating&&coachNotice) return 'Coach played '+coachNotice;
   if(busy) return 'Coach is thinking…';
-  if(game.in_checkmate()){const loser=game.turn();if(mode==='lesson')return 'Checkmate!';return loser===player?'Checkmate. The coach wins this one.':'Checkmate. You win!'}
+  if(game.in_checkmate()){const loser=game.turn();if(mode==='lesson')return 'Checkmate!';if(mode==='together')return 'Checkmate. '+playerName(loser==='w'?'b':'w')+' wins!';return loser===player?'Checkmate. The coach wins this one.':'Checkmate. You win!'}
   if(game.in_stalemate()) return 'Stalemate. The game is a draw.';
   if(game.in_threefold_repetition()) return 'Draw by repetition.';
   if(game.insufficient_material()) return 'Draw: not enough material to checkmate.';
   if(game.in_draw()) return 'Draw.';
   if(mode==='lesson') return LESSONS[lessonIdx].solvedNow?'Solved. Try the next lesson.':'Your move (White)';
+  if(mode==='together')return (game.in_check()?'Check! ':'')+playerName(game.turn())+'’s turn · '+(game.turn()==='w'?'White':'Black');
   const you=player==='w'?'White':'Black';
   if(game.turn()===player) return (game.in_check()?'Check! ':'')+'Your move ('+you+')';
   return 'Coach to move';
@@ -837,11 +856,11 @@ function render(){
   $('stopBtn').hidden=!busy||coachAnimating;
   const coachTurn=mode==='play'&&!resigned&&!busy&&!game.game_over()&&game.turn()!==player;
   $('coachMoveBtn').hidden=!coachTurn;
-  $('undoBtn').disabled=game.history().length===0||mode!=='play';
+  $('undoBtn').disabled=busy||game.history().length===0||mode==='lesson';
   $('reviewBtn').disabled=busy||game.history().length<2;
-  $('hintBtn').disabled=(mode==='play'&&resigned)||busy||game.game_over()||game.turn()!==player;
+  $('hintBtn').disabled=(mode!=='lesson'&&resigned)||busy||game.game_over()||(mode!=='together'&&game.turn()!==player);
   $('askBtn').disabled=busy;
-  $('resignBtn').disabled=busy||resigned||mode!=='play'||game.game_over();
+  $('resignBtn').disabled=busy||resigned||mode==='lesson'||game.game_over();
 
   $('coachAvail').textContent=sampleState==='on'?(coachSource==='akashml'?'Stockfish analysis · AkashML coaching':'Powered by Claude on your account'):sampleState==='checking'?'Connecting…':analyzer?'Stockfish analysis · local explanations':'Local coaching mode · no LLM required';
   renderMoveGrade();renderCoachCard();renderChrome();renderLog();
@@ -853,6 +872,17 @@ function render(){
   $('openCoachBtn').textContent=mode==='lesson'?'Lesson details':'Ask the coach';
   $('coachPanelTitle').textContent=mode==='lesson'?'Lessons':'Coach';
   $('coachPanel').setAttribute('aria-label',mode==='lesson'?'Lessons':'Coach');
+  $('togetherPanel').hidden=mode!=='together';$('playPanel').hidden=mode!=='play';$('lessonPanel').hidden=mode!=='lesson';
+  if(mode==='together'){
+    $('matchSummary').textContent=together.white+' vs '+together.black+' · '+(together.orientation==='fixed'?'Stay fixed':'Flip each turn');
+    $('coachPanel').setAttribute('aria-label','Play together');$('togetherTurn').textContent=statusText();$('togetherHelp').textContent=together.coaching==='learn'?'Hints are available to either player on their turn. Review the game together when it ends.':'A friendly match. Coaching is off.';
+    $('coachPanelTitle').textContent='Play together';$('openCoachBtn').textContent='Game details';
+  }
+  $('settingsTogetherBtn').hidden=mode!=='together';$('soloSettingsTitle').hidden=mode==='together';$('soloSettingsFields').hidden=mode==='together';
+  const noCoaching=mode==='together'&&together.coaching==='off';
+  document.querySelector('.prompt-chips').hidden=noCoaching;
+  $('hintBtn').hidden=noCoaching;$('reviewBtn').hidden=noCoaching;$('askForm').hidden=noCoaching;
+  if(mode==='together')$('reviewBtn').disabled=busy||(!resigned&&!game.game_over());
 }
 
 /* ---------- input ---------- */
@@ -861,7 +891,7 @@ $('board').addEventListener('dragstart',e=>{const p=e.target.closest('.sq');if(!
 $('board').addEventListener('dragover',e=>{if(sel)e.preventDefault()});
 $('board').addEventListener('drop',e=>{e.preventDefault();const b=e.target.closest('.sq');if(b)onSquare(b.dataset.sq)});
 function canInteract(){
-  if(busy||game.game_over()||(mode==='play'&&resigned))return false;
+  if(busy||game.game_over()||(mode!=='lesson'&&resigned))return false;
   if(mode==='play'&&game.turn()!==player)return false;
   if(mode==='lesson'&&LESSONS[lessonIdx].solvedNow)return false;
   return true;
@@ -882,6 +912,7 @@ function userMove(from,to){
   sel=null; if(!mv){render();return}
   last={from,to};lastByCoach=false;coachNotice=null;
   if(mode==='lesson'){checkLesson(mv);return}
+  if(mode==='together'){lastByCoach=false;if(game.game_over())game.header('Result',game.in_checkmate()?(game.turn()==='w'?'0-1':'1-0'):'1/2-1/2');save();render();return}
   before.studentMove=mv.from+mv.to+(mv.promotion||'');
   save(); render();
   if(game.game_over()){endGame();return}
@@ -1093,6 +1124,7 @@ function localHint(){
   return 'Start with this question: '+(items[0]||'What is your opponent threatening?')+' Then compare your checks, captures, and threats.';
 }
 function localReview(){
+  if(mode==='together'){const h=game.history({verbose:true});return 'Local shared review (without engine evaluation): '+['w','b'].map(c=>{const moves=h.filter(m=>m.color===c);return playerName(c)+' played '+moves.length+' moves and made '+moves.filter(m=>m.captured).length+' captures. Practice checking your opponent’s threats before each move.'}).join(' ')}
   const h=game.history({verbose:true}), mine=h.filter((_,i)=>(i%2===0?'w':'b')===player);
   const captures=mine.filter(m=>m.captured).length, checks=mine.filter(m=>/[+#]/.test(m.san)).length;
   const castled=mine.some(m=>/^O-O/.test(m.san));
@@ -1141,14 +1173,16 @@ async function streamCoach(prompt,title,purpose='question'){
 }
 
 $('hintBtn').onclick=()=>{
+  if(mode==='together'&&together.coaching==='off')return;
   addLog('you',{text:'Can I have a hint?'});
   if(!sample){addLog('coach',{text:localHint()});return}
-  const prompt=['You are a chess coach. Your student is '+LEVELS[level]+'. They play '+(player==='w'?'White':'Black')+' and it is their move.',
+  const prompt=['You are a chess coach. Your student is '+LEVELS[level]+'. They play '+(studentColor()==='w'?'White':'Black')+' and it is their move.',
    'Game so far (PGN): '+(game.pgn()||'(none)'),'Position (FEN): '+game.fen(),'Their legal moves: '+game.moves().join(' '),
    'Give a hint in 2-3 sentences that points them toward a good plan or idea (what to look at, what the opponent threatens) WITHOUT naming the exact move.',plainRules()].join('\n');
   streamCoach(prompt,null,'hint');
 };
 $('reviewBtn').onclick=()=>{
+  if(mode==='together'){if(together.coaching==='off'||(!resigned&&!game.game_over()))return;addLog('you',{text:'Review our game, please.'});if(!sample){addLog('coach',{text:localReview(),san:'Game review'});return}streamCoach('Review this game for both players: '+together.white+' (White) and '+together.black+' (Black). PGN: '+game.pgn()+' Result: '+statusText()+'. For each player, explain one good decision and one thing to practice. Be accurate and encouraging. Under 220 words. '+plainRules(),'Game review','review');return}
   addLog('you',{text:'Review my game, please.'});
   if(!sample){addLog('coach',{text:localReview(),san:'Game review'});return}
   const prompt=['You are a chess coach reviewing a game with your student, who is '+LEVELS[level]+'. The student played '+(player==='w'?'White':'Black')+'; you (the coach) played the other side.',
@@ -1158,13 +1192,14 @@ $('reviewBtn').onclick=()=>{
 };
 $('askForm').addEventListener('submit',e=>{
   e.preventDefault();
+  if(mode==='together'&&together.coaching==='off')return;
   const q=$('askInput').value.trim(); if(!q||busy)return;
   $('askInput').value='';
   addLog('you',{text:q});
   if(!sample){addLog('coach',{text:localAnswer(q)});return}
   const ctx=mode==='lesson'
     ?'The student is working on a lesson called "'+LESSONS[lessonIdx].title+'" ('+LESSONS[lessonIdx].task+'). Do not give away the answer unless they ask for it directly.'
-    :'They are playing a teaching game against you as '+(player==='w'?'White':'Black')+'.';
+    :mode==='together'?'Two humans are playing: '+together.white+' is White and '+together.black+' is Black. You are advising '+playerName(game.turn())+', the player whose turn it is.': 'They are playing a teaching game against you as '+(player==='w'?'White':'Black')+'.';
   const recent=logItems.filter(i=>i.kind!=='sys').slice(-6).map(i=>(i.kind==='you'?'Student: ':'Coach: ')+(i.san?i.san+' ':'')+i.text).join('\n');
   const prompt=['You are a friendly chess coach. Your student is '+LEVELS[level]+'. '+ctx,
    'Game so far (PGN): '+(game.pgn()||'(none)'),'Current position (FEN): '+game.fen()+' ('+(game.turn()==='w'?'White':'Black')+' to move)',
@@ -1207,6 +1242,7 @@ $('replayMoveBtn').onclick=()=>{
 };
 $('tellMoreBtn').onclick=()=>{$('askInput').value='Tell me more about '+(lastCoach?lastCoach.san:'the coach’s move')+'.';$('askInput').focus()};
 $('newTopBtn').onclick=()=>{
+  if(mode==='together'){openTogetherSetup();return}
   if(ctl)ctl.abort();
   resetCoachReveal();
   if(mode==='lesson')setMode('play');
@@ -1220,6 +1256,7 @@ $('newTopBtn').onclick=()=>{
   if(player==='b')coachReply(null);
 };
 $('undoBtn').onclick=()=>{
+  if(mode==='together'){if(!game.history().length||busy)return;$('undoQuestion').textContent=playerName(game.turn())+', do you agree to take back '+playerName(game.turn()==='w'?'b':'w')+'’s last move?';$('togetherUndo').showModal();return}
   if(ctl)ctl.abort(); resetCoachReveal(); busy=false;
   if(!game.history().length)return;
   resigned=false;game.header('Result','*');
@@ -1233,10 +1270,10 @@ $('undoBtn').onclick=()=>{
 $('resignBtn').onclick=()=>{$('resignConfirm').hidden=false;$('confirmResignBtn').focus()};
 $('cancelResignBtn').onclick=()=>{$('resignConfirm').hidden=true;$('resignBtn').focus()};
 $('confirmResignBtn').onclick=()=>{
-  if(busy||mode!=='play'||resigned||game.game_over())return;
-  resigned=true;game.header('Result',player==='w'?'0-1':'1-0');sel=null;
+  if(busy||mode==='lesson'||resigned||game.game_over())return;
+  resigned=true;game.header('Result',studentColor()==='w'?'0-1':'1-0');sel=null;
   $('resignConfirm').hidden=true;$('moreActions').open=false;
-  addLog('sys',{text:'You resigned. Review this game or start a new one whenever you’re ready.'});save();render();
+  addLog('sys',{text:mode==='together'?statusText():'You resigned. Review this game or start a new one whenever you’re ready.'});save();render();
 };
 $('pgnBtn').onclick=()=>{
   const pgn=game.pgn()||'(no moves yet)';
@@ -1319,22 +1356,29 @@ $('lReset').onclick=()=>loadLesson(lessonIdx);
 $('lNext').onclick=()=>loadLesson((lessonIdx+1)%LESSONS.length);
 
 function setMode(m){
-  if(m===mode){if(m==='lesson'&&layoutPreference==='board')setCoachSheet(true);return;}
-  if(ctl)ctl.abort(); resetCoachReveal(); busy=false;
-  if(m==='lesson'){savedPlay={pgn:game.pgn(),last,lastByCoach,logItems:[...logItems]};mode='lesson';loadLesson(lessonIdx)}
-  else{
-    logItems=savedPlay?savedPlay.logItems:[];
-    mode='play'; game=new Chess(); sel=null; last=null;lastByCoach=false;
-    if(savedPlay&&savedPlay.pgn){game.load_pgn(savedPlay.pgn);last=savedPlay.last;lastByCoach=!!savedPlay.lastByCoach}
-  }
-  $('tabPlay').setAttribute('aria-selected',String(mode==='play'));
-  $('tabLessons').setAttribute('aria-selected',String(mode==='lesson'));
-  $('playPanel').hidden=mode!=='play'; $('lessonPanel').hidden=mode!=='lesson';
-  render();
-  if(layoutPreference==='board')setCoachSheet(mode==='lesson');
+  if(m===mode){if(layoutPreference==='board'&&m!=='play')setCoachSheet(true);return}
+  if(ctl)ctl.abort();resetCoachReveal();busy=false;
+  if(mode==='play')savedPlay=snapshot();if(mode==='together')savedTogether=snapshot();
+  const needsSetup=m==='together'&&!savedTogether;mode=m;
+  if(m==='lesson')loadLesson(lessonIdx);else useSnapshot(m==='play'?savedPlay:savedTogether);
+  for(const [id,value] of [['tabPlay','play'],['tabTogether','together'],['tabLessons','lesson']])$(id).setAttribute('aria-selected',String(mode===value));
+  save();render();if(layoutPreference==='board')setCoachSheet(m!=='play');
+  if(needsSetup)openTogetherSetup();
 }
-$('tabPlay').onclick=()=>setMode('play');
-$('tabLessons').onclick=()=>setMode('lesson');
+function openTogetherSetup(){
+  $('whiteName').value=together.white;$('blackName').value=together.black;$('togetherOrientation').value=together.orientation;$('togetherCoaching').value=together.coaching;$('togetherSetup').showModal();
+}
+$('tabPlay').onclick=()=>setMode('play');$('tabTogether').onclick=()=>setMode('together');$('tabLessons').onclick=()=>setMode('lesson');
+$('settingsTogetherBtn').onclick=()=>{closeSettings();openTogetherSetup()};
+$('togetherSetupBtn').onclick=openTogetherSetup;$('cancelTogether').onclick=()=>$('togetherSetup').close();
+$('swapNames').onclick=()=>{const name=$('whiteName').value;$('whiteName').value=$('blackName').value;$('blackName').value=name};
+$('togetherForm').onsubmit=e=>{
+  e.preventDefault();if(ctl)ctl.abort();resetCoachReveal();busy=false;
+  together={white:$('whiteName').value.trim()||'White',black:$('blackName').value.trim()||'Black',orientation:$('togetherOrientation').value,coaching:$('togetherCoaching').value};
+  useSnapshot(null);game.header('White',together.white,'Black',together.black);save();$('togetherSetup').close();render();if(layoutPreference==='board')setCoachSheet(false);
+};
+$('declineUndo').onclick=()=>$('togetherUndo').close();
+$('approveUndo').onclick=()=>{if(mode==='together'&&game.history().length){game.undo();resigned=false;game.header('Result','*');const m=game.history({verbose:true}).at(-1);last=m?{from:m.from,to:m.to}:null;sel=null;save();render()}$('togetherUndo').close()};
 
 /* ---------- responsive presentation ---------- */
 let coachReturnFocus=null;
@@ -1343,7 +1387,7 @@ function setCoachSheet(open){
   document.documentElement.classList.toggle('coach-open',open);
   document.querySelector('.board-col').inert=open;document.querySelector('.topbar').inert=open;$('openCoachBtn').inert=open;
   $('coachScrim').hidden=!open;$('openCoachBtn').setAttribute('aria-expanded',String(open));$('lessonDetailsBtn').setAttribute('aria-expanded',String(open));
-  if(open){$('coachPanel').setAttribute('role','dialog');$('coachPanel').setAttribute('aria-modal','true');$('closeCoachBtn').focus();requestAnimationFrame(()=>{const card=mode==='play'?$('gradeCard'):$('lessonPanel');$('coachFeed').scrollTop=card.offsetTop-$('coachFeed').offsetTop})}
+  if(open){$('coachPanel').setAttribute('role','dialog');$('coachPanel').setAttribute('aria-modal','true');$('closeCoachBtn').focus();requestAnimationFrame(()=>{const card=mode==='play'?$('gradeCard'):mode==='together'?$('togetherPanel'):$('lessonPanel');$('coachFeed').scrollTop=card.offsetTop-$('coachFeed').offsetTop})}
   else{$('coachPanel').removeAttribute('role');$('coachPanel').removeAttribute('aria-modal');if(coachReturnFocus&&coachReturnFocus.isConnected)coachReturnFocus.focus()}
 }
 function arrangeLayout(){
@@ -1374,7 +1418,8 @@ $('coachPanel').addEventListener('keydown',e=>{
 window.addEventListener('resize',arrangeLayout);
 setLayout(layoutPreference);
 /* ---------- boot ---------- */
-const resumed=restore();
+const resumed=restore();savedPlay=snapshot();
+try{const saved=JSON.parse(localStorage.getItem('chesscoach.together')||'null');if(saved){together={white:String(saved.options?.white||'Cory').slice(0,24),black:String(saved.options?.black||'Oliver').slice(0,24),orientation:saved.options?.orientation==='flip'?'flip':'fixed',coaching:saved.options?.coaching==='off'?'off':'learn'};savedTogether=saved.game||null}if(localStorage.getItem('chesscoach.mode')==='together'){mode='together';useSnapshot(savedTogether);$('tabPlay').setAttribute('aria-selected','false');$('tabTogether').setAttribute('aria-selected','true')}}catch(e){}
 $('colorSel').value=player;$('levelSel').value=level;$('engineSel').value=opponentEngine;$('tierSel').value=tier;$('oddsSel').value=odds;
 addLog('coach',{text:resumed
   ?'Welcome back. Your last game is set up where you left off.'
