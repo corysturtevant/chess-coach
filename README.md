@@ -67,6 +67,7 @@ After every coach move, the board stays locked for a 700 ms reveal: the piece vi
 
 The play screen follows the v2 redesign: a larger board, a horizontal graded move list,
 and one coach panel containing move feedback, the coach’s reply, your plan, and questions.
+On phones, move numbers and moves retain their full width in a horizontally scrolling list.
 The current position stays first; past turns and earlier questions live under **Earlier coaching**.
 The plan continues with follow-on goals after the opening principles have been completed.
 Above 1400px, the board scales with both window dimensions so the move list, action buttons,

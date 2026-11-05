@@ -211,6 +211,20 @@ try {
   assert.equal(await longGame.locator('#historyLog').isVisible(), true);
   await longGame.locator('#hintBtn').click();
   assert.ok((await longGame.locator('#log').innerText()).includes('Can I have a hint?'));
+  for (const width of [320, 393, 430]) {
+    await longGame.setViewportSize({ width, height: 852 });
+    const moves = await longGame.locator('#sheet').evaluate(el => {
+      const children = [...el.children];
+      return {
+        scrolls: el.scrollWidth > el.clientWidth,
+        fitsPage: document.documentElement.scrollWidth <= innerWidth,
+        separated: children.every((child, i) => !i || child.getBoundingClientRect().left >= children[i - 1].getBoundingClientRect().right),
+        unclipped: children.every(child => child.scrollWidth <= child.clientWidth + 1),
+      };
+    });
+    assert.ok(moves.scrolls && moves.fitsPage, `Move list scrolls within phone width ${width}`);
+    assert.ok(moves.separated && moves.unclipped, `Moves retain their full width at ${width}px`);
+  }
   await longGame.setViewportSize({ width: 1180, height: 820 });
   assert.equal(await longGame.locator('#planPanel').isVisible(), true, 'Plan is also available on smaller iPads');
 
