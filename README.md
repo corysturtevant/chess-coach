@@ -65,7 +65,8 @@ After every coach move, the board stays locked for a 700 ms reveal: the piece vi
 
 ## Play together
 
-Choose **Play together** to play another person on the same device. Enter both names,
+Choose **Play together** to play another person on the same device. Select a saved player
+for each color, or choose **Guest** to reveal a guest-name field. Then
 choose **Stay fixed** (the default, White at the bottom) or **Flip each turn**, and
 start the game. There is no clock or handoff screen, and the computer never makes moves.
 

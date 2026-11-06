@@ -15,7 +15,13 @@ try{
  const errors=[];a.on('pageerror',e=>errors.push(e.message));b.on('pageerror',e=>errors.push(e.message));
  for(const page of [a,b])await page.route('**/api/analyze',route=>route.fulfill({json:{assessment:'good',lossCp:0,bestStudentMove:'e2e4'}}));
  async function choose(page,name){await page.locator('#profileBtn').click();await page.locator('#profileList button').filter({hasText:new RegExp('^'+name+'(?: ✓)?$')}).click();await page.waitForFunction(()=>!document.querySelector('#profileDialog').open)}
- await a.goto(url);await choose(a,'Cory');await a.locator('#tabTogether').click();await a.locator('#togetherForm button[type=submit]').click();
+ await a.goto(url);await choose(a,'Cory');await a.locator('#tabTogether').click();
+ assert.equal(await a.locator('#whiteName').isVisible(),false);assert.equal(await a.locator('#blackName').isVisible(),false);
+ await a.locator('#whiteProfile').selectOption('');await a.locator('#whiteName').fill('Guest friend');
+ await a.locator('#swapNames').click();assert.equal(await a.locator('#blackName').inputValue(),'Guest friend');assert.equal(await a.locator('#blackName').isVisible(),true);assert.equal(await a.locator('#whiteName').isVisible(),false);
+ await a.locator('#swapNames').click();await a.locator('#whiteProfile').selectOption('cory');assert.equal(await a.locator('#whiteName').isVisible(),false);
+ await a.screenshot({path:'/tmp/chess-player-setup.png',animations:'disabled'});
+ await a.locator('#togetherForm button[type=submit]').click();
  await a.locator('.sq[data-sq=e2]').click();await a.locator('.sq[data-sq=e4]').click();await a.waitForFunction(()=>!document.querySelector('#undoBtn').disabled);
  await a.waitForFunction(()=>document.querySelector('#profileSync').textContent==='Saved across devices');
  await b.goto(url);await choose(b,'Cory');assert.match(await b.locator('#sheet').innerText(),/e4/);

@@ -527,7 +527,7 @@ body:has(.profile-drawer[open]){overflow:hidden}
 <script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.js"></script>
 <dialog id="profileDialog" class="together-dialog profile-drawer" aria-labelledby="profilesTitle"><div class="drawer-head"><div><span class="eyebrow">Your chess</span><h2 id="profilesTitle">Players</h2></div><button class="icon-btn" id="closeProfiles" type="button" aria-label="Close players">×</button></div><div class="profile-drawer-content"><p class="note">Shared family profiles on this server. Choose the same player on another device to continue.</p><p id="profileSync" role="status">Choose a player to enable sync.</p><button class="btn" id="reloadProfile" hidden>Load latest saved game</button><div class="row" id="profileList"></div><label class="profile-import"><input type="checkbox" id="importProfileGame"> Import this device’s current games if the selected profile is empty</label><form id="addProfileForm"><label>Add a player<input id="newProfileName" maxlength="24" required placeholder="Player name"></label><button class="btn primary">Add player</button></form><h3>Your game history</h3><div id="profileHistory"></div></div></dialog>
 <dialog id="historyDialog" class="together-dialog profile-drawer" aria-labelledby="historyTitle"><div class="drawer-head"><div><span class="eyebrow">Game history</span><h2 id="historyTitle">Saved game</h2></div><button class="icon-btn" id="closeHistory" type="button" aria-label="Close game history">×</button></div><div class="profile-drawer-content"><h3>Saved review</h3><p id="historyReview" style="white-space:pre-wrap"></p><h3>Game moves (PGN)</h3><pre id="historyPgn" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></div></dialog>
-<dialog id="togetherSetup" class="together-dialog" aria-labelledby="togetherSetupTitle"><form id="togetherForm"><h2 id="togetherSetupTitle">A game together</h2><p>No clock, no rush. Both players use this board.</p><div class="together-names"><label>White<select id="whiteProfile" aria-label="White player profile"></select><input id="whiteName" maxlength="24" value="Cory" required></label><label>Black<select id="blackProfile" aria-label="Black player profile"></select><input id="blackName" maxlength="24" value="Oliver" required></label></div><label>Board orientation<select id="togetherOrientation"><option value="fixed">Stay fixed</option><option value="flip">Flip each turn</option></select></label><label>Coaching<select id="togetherCoaching"><option value="learn">Learn together</option><option value="off">Off</option></select></label><p class="note">Hints when you ask. A shared review after the game.</p><div class="row"><button class="btn" type="button" id="swapNames">Swap colors</button><button class="btn" type="button" id="cancelTogether">Cancel</button><button class="btn primary" type="submit">Start new game</button></div><p class="note">Starting replaces the current two-player game. Your coach game is kept separately.</p></form></dialog>
+<dialog id="togetherSetup" class="together-dialog" aria-labelledby="togetherSetupTitle"><form id="togetherForm"><h2 id="togetherSetupTitle">A game together</h2><p>No clock, no rush. Both players use this board.</p><div class="together-names"><div><label>White<select id="whiteProfile" aria-label="White player profile"></select></label><label id="whiteGuestField" hidden>Guest name<input id="whiteName" maxlength="24" value="Cory" placeholder="Enter guest name" required></label></div><div><label>Black<select id="blackProfile" aria-label="Black player profile"></select></label><label id="blackGuestField" hidden>Guest name<input id="blackName" maxlength="24" value="Oliver" placeholder="Enter guest name" required></label></div></div><label>Board orientation<select id="togetherOrientation"><option value="fixed">Stay fixed</option><option value="flip">Flip each turn</option></select></label><label>Coaching<select id="togetherCoaching"><option value="learn">Learn together</option><option value="off">Off</option></select></label><p class="note">Hints when you ask. A shared review after the game.</p><div class="row"><button class="btn" type="button" id="swapNames">Swap colors</button><button class="btn" type="button" id="cancelTogether">Cancel</button><button class="btn primary" type="submit">Start new game</button></div><p class="note">Starting replaces the current two-player game. Your coach game is kept separately.</p></form></dialog>
 <dialog id="togetherUndo" class="together-dialog" aria-labelledby="undoTitle"><h2 id="undoTitle">Take back a move?</h2><p id="undoQuestion"></p><div class="row"><button class="btn" id="declineUndo">Keep playing</button><button class="btn primary" id="approveUndo">Agree and undo</button></div></dialog>
 <script>
 (function(){
@@ -1408,16 +1408,15 @@ function setMode(m){
   if(needsSetup)openTogetherSetup();
 }
 function openTogetherSetup(){
-  renderParticipantOptions();
-  $('whiteName').value=together.white;$('blackName').value=together.black;$('togetherOrientation').value=together.orientation;$('togetherCoaching').value=together.coaching;$('togetherSetup').showModal();
+  $('whiteName').value=together.white;$('blackName').value=together.black;$('togetherOrientation').value=together.orientation;$('togetherCoaching').value=together.coaching;renderParticipantOptions();$('togetherSetup').showModal();
 }
 $('tabPlay').onclick=()=>setMode('play');$('tabTogether').onclick=()=>setMode('together');$('tabLessons').onclick=()=>setMode('lesson');
 $('settingsTogetherBtn').onclick=()=>{closeSettings();openTogetherSetup()};
 $('togetherSetupBtn').onclick=openTogetherSetup;$('cancelTogether').onclick=()=>$('togetherSetup').close();
-$('swapNames').onclick=()=>{const name=$('whiteName').value;$('whiteName').value=$('blackName').value;$('blackName').value=name;const id=$('whiteProfile').value;$('whiteProfile').value=$('blackProfile').value;$('blackProfile').value=id};
+$('swapNames').onclick=()=>{const name=$('whiteName').value;$('whiteName').value=$('blackName').value;$('blackName').value=name;const id=$('whiteProfile').value;$('whiteProfile').value=$('blackProfile').value;$('blackProfile').value=id;syncParticipantInput('white');syncParticipantInput('black')};
 $('togetherForm').onsubmit=async e=>{
   e.preventDefault();if(activeProfile){await flushProfile();if(profileDirty){profileMessage('Sync pending. Finish syncing before starting another game.');return}}if(ctl)ctl.abort();resetCoachReveal();busy=false;
-  together={white:$('whiteName').value.trim()||'White',black:$('blackName').value.trim()||'Black',whiteId:$('whiteProfile').value,blackId:$('blackProfile').value,orientation:$('togetherOrientation').value,coaching:$('togetherCoaching').value};
+  together={white:profileList.find(p=>p.id===$('whiteProfile').value)?.name||$('whiteName').value.trim()||'White',black:profileList.find(p=>p.id===$('blackProfile').value)?.name||$('blackName').value.trim()||'Black',whiteId:$('whiteProfile').value,blackId:$('blackProfile').value,orientation:$('togetherOrientation').value,coaching:$('togetherCoaching').value};
   useSnapshot(null);game.header('White',together.white,'Black',together.black);save();$('togetherSetup').close();render();if(layoutPreference==='board')setCoachSheet(false);
 };
 $('declineUndo').onclick=()=>$('togetherUndo').close();
@@ -1531,8 +1530,19 @@ $('reloadProfile').onclick=async()=>{
   if(!activeProfile)return;profileStore('chesscoach.conflict-backup.'+activeProfile.id,JSON.stringify(profileState()));
   try{const remote=await profileRequest('/'+activeProfile.id);profileConflict=false;profileDirty=false;profileRevision=remote.revision;applyProfileState(remote.state);cacheProfile();profileMessage('Latest saved game loaded. Your previous device state was kept as a local backup.');$('reloadProfile').hidden=true;renderProfileHistory(remote.history)}catch(e){profileMessage('Unable to reload. Your local game is preserved.')}
 };
+function syncParticipantInput(color,resetGuest=false){
+  const profile=profileList.find(p=>p.id===$(color+'Profile').value),input=$(color+'Name');
+  $(color+'GuestField').hidden=!!profile;input.disabled=!!profile;
+  if(profile)input.value=profile.name;else if(resetGuest)input.value='';
+}
 function renderParticipantOptions(){
-  for(const [id,color] of [['whiteProfile','white'],['blackProfile','black']]){const el=$(id);el.textContent='';const custom=document.createElement('option');custom.value='';custom.textContent='Guest / custom name';el.append(custom);for(const p of profileList){const o=document.createElement('option');o.value=p.id;o.textContent=p.name;el.append(o)}el.value=together[color+'Id']||'';el.onchange=()=>{const p=profileList.find(p=>p.id===el.value);if(p)$(color+'Name').value=p.name}}
+  for(const color of ['white','black']){
+    const el=$(color+'Profile');el.textContent='';
+    for(const p of profileList){const o=document.createElement('option');o.value=p.id;o.textContent=p.name;el.append(o)}
+    const custom=document.createElement('option');custom.value='';custom.textContent='Guest';el.append(custom);
+    el.value=profileList.some(p=>p.id===together[color+'Id'])?together[color+'Id']:'';
+    el.onchange=()=>syncParticipantInput(color,true);syncParticipantInput(color);
+  }
 }
 async function pollProfile(){
   if(!activeProfile||busy||sel||profileSaving||profileLoading||profileConflict||document.hidden)return;
