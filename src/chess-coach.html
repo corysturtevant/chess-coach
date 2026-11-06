@@ -329,14 +329,15 @@ body{font-size:16px;padding:0}.wrap{display:flex;padding:0;gap:0}.topbar{min-hei
 
 /* Profile and saved-game drawers share Settings' width, spacing and close control. */
 .profile-drawer{position:fixed;inset:0 0 auto auto;margin:0;width:min(460px,100%);max-width:100%;height:100dvh;max-height:100dvh;border:0;border-radius:0;padding:24px;background:var(--paper);box-shadow:var(--shadow-card);overflow:hidden}
-.profile-drawer[open]{display:flex;flex-direction:column;gap:22px;animation:profile-drawer-in .18s ease-out}
+.profile-drawer[open]{display:flex;flex-direction:column;gap:22px}
 .profile-drawer::backdrop{background:rgba(28,26,24,.32)}
 .profile-drawer .drawer-head{flex:none;align-items:center}.profile-drawer .drawer-head>div{min-width:0}.profile-drawer .drawer-head h2{font:560 32px/1.1 var(--f-display);margin:3px 0 0;overflow-wrap:anywhere}.profile-drawer .icon-btn{flex:none}
 .profile-drawer-content{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:env(safe-area-inset-bottom,0px)}
 .profile-drawer-content>:first-child{margin-top:0}
 body:has(.profile-drawer[open]){overflow:hidden}
-@keyframes profile-drawer-in{from{transform:translateX(100%)}to{transform:translateX(0)}}
-@media(prefers-reduced-motion:reduce){.profile-drawer[open]{animation:none}}
+.profile-drawer[open],.settings-backdrop:not([hidden]) .settings-drawer{animation:drawer-slide-in .18s ease-out}
+@keyframes drawer-slide-in{from{transform:translateX(100%)}to{transform:translateX(0)}}
+@media(prefers-reduced-motion:reduce){.profile-drawer[open],.settings-backdrop:not([hidden]) .settings-drawer{animation:none}}
 </style>
 <div class="wrap">
   <header class="topbar">
