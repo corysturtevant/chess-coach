@@ -117,6 +117,10 @@ player rating is displayed yet; per-move ratings are separate from a player's pl
 
 The play screen follows the v2 redesign: a larger board, a horizontal graded move list,
 and one coach panel containing move feedback, the coach’s reply, your plan, and questions.
+Click any move in the move list to inspect the board immediately after it. The selected
+move is highlighted; **Return to live game** restores the current position. Replay is read-only
+and does not change the game or saved history. Coaching remains for the live game; return
+to live play before asking questions, requesting hints or undoing moves.
 On phones, move numbers and moves retain their full width in a horizontally scrolling list.
 The current position stays first; past turns and earlier questions live under **Earlier coaching**.
 The plan continues with follow-on goals after the opening principles have been completed.

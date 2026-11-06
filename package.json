@@ -9,7 +9,7 @@
     "build": "node scripts/build-preview.mjs",
     "preview": "node scripts/build-preview.mjs",
     "start": "npm run build && node --env-file-if-exists=.env scripts/serve.mjs",
-    "test:ui": "npm run build && node tests/ui.mjs && node tests/profiles-ui.mjs"
+    "test:ui": "npm run build && node tests/ui.mjs && node tests/profiles-ui.mjs && node tests/replay-ui.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",

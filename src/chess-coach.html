@@ -338,6 +338,7 @@ body:has(.profile-drawer[open]){overflow:hidden}
 .profile-drawer[open],.settings-backdrop:not([hidden]) .settings-drawer{animation:drawer-slide-in .18s ease-out}
 @keyframes drawer-slide-in{from{transform:translateX(100%)}to{transform:translateX(0)}}
 @media(prefers-reduced-motion:reduce){.profile-drawer[open],.settings-backdrop:not([hidden]) .settings-drawer{animation:none}}
+button.sheet-move{border:0;background:transparent;color:inherit;font:inherit;padding:3px 5px;border-radius:6px;cursor:pointer}button.sheet-move:hover{background:color-mix(in srgb,var(--ink) 10%,transparent)}button.sheet-move[aria-current="step"]{outline:2px solid var(--teal);outline-offset:-2px;background:color-mix(in srgb,var(--teal) 16%,transparent)}button.sheet-move:focus-visible{outline:2px solid var(--teal)}
 </style>
 <div class="wrap">
   <header class="topbar">
@@ -379,6 +380,7 @@ body:has(.profile-drawer[open]){overflow:hidden}
 <div hidden><span id="playerLabel"></span><span id="levelLabel"></span><span id="engineLabel"></span></div>
       <div class="sheet" id="sheet" aria-label="Game moves"></div>
       <div class="board-actions" id="boardActions">
+        <button class="btn primary" id="returnLiveBtn" hidden>Return to live game</button>
         <button class="btn" id="undoBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5M4 9h9a7 7 0 0 1 7 7v3"/></svg><span>Undo</span></button>
         <button class="btn" id="hintBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6m-5 3h4M8 14a6 6 0 1 1 8 0c-1 1-1 2-1 2H9s0-1-1-2Z"/></svg><span>Hint</span></button>
         <button class="btn" id="reviewBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/></svg><span>Review</span></button>
@@ -589,6 +591,7 @@ const LESSONS=[
 ];
 
 let game=new Chess();
+let replay=null;
 let gameId=crypto.randomUUID?crypto.randomUUID():String(Date.now());
 let assistance={hints:0,questions:0,undos:0};
 let mode='play', player='w', level='beginner', tier='default', opponentEngine='stockfish';
@@ -764,32 +767,33 @@ function boardPoint(sq){
   return {x:flip?7-file:file,y:flip?rank-1:8-rank};
 }
 function renderBoard(){
+  const position=replay?.board||game,boardLast=replay?replay.last:last,byCoach=!replay&&lastByCoach;
   const el=$('board'); el.textContent='';
   const flip=orientation()==='b';
   const targets=new Map();
-  if(sel){for(const m of game.moves({square:sel,verbose:true}))targets.set(m.to,!!m.captured)}
+  if(sel){for(const m of position.moves({square:sel,verbose:true}))targets.set(m.to,!!m.captured)}
   let checkSq=null;
-  if(game.in_check()){const t=game.turn();for(let r=1;r<=8;r++)for(const f of FILES){const p=game.get(f+r);if(p&&p.type==='k'&&p.color===t)checkSq=f+r}}
+  if(position.in_check()){const t=position.turn();for(let r=1;r<=8;r++)for(const f of FILES){const p=position.get(f+r);if(p&&p.type==='k'&&p.color===t)checkSq=f+r}}
   for(let i=0;i<8;i++){
     const rank=flip?i+1:8-i;
     for(let j=0;j<8;j++){
       const fi=flip?7-j:j, sq=FILES[fi]+rank;
       const b=document.createElement('button'); b.type='button';
       b.className='sq'+((fi+rank)%2===1?' dk':'');
-      if(last&&(last.from===sq||last.to===sq)){b.classList.add('last');if(lastByCoach)b.classList.add('coach-last')}
-      if(coachAnimating&&lastByCoach&&last&&last.to===sq)b.classList.add('coach-to');
+      if(boardLast&&(boardLast.from===sq||boardLast.to===sq)){b.classList.add('last');if(byCoach)b.classList.add('coach-last')}
+      if(coachAnimating&&byCoach&&boardLast&&boardLast.to===sq)b.classList.add('coach-to');
       if(sel===sq)b.classList.add('sel');
       if(targets.has(sq)){b.classList.add('tgt');if(targets.get(sq))b.classList.add('cap')}
       if(checkSq===sq)b.classList.add('check');
-      b.dataset.sq=sq;b.style.zIndex=String(i+1);b.draggable=!!game.get(sq);
-      const p=game.get(sq);
+      b.dataset.sq=sq;b.style.zIndex=String(i+1);b.draggable=!!position.get(sq);
+      const p=position.get(sq);
       b.setAttribute('aria-label',sq+(p?' '+(p.color==='w'?'white ':'black ')+({k:'king',q:'queen',r:'rook',b:'bishop',n:'knight',p:'pawn'})[p.type]:''));
       if(p){
         const s=document.createElement('span');s.className='pc '+p.color+' '+(boardStyle==='classic'?'glyph':'sprite');s.draggable=true;s.dataset.sq=sq;
         if(boardStyle==='chalkboard')s.style.setProperty('--chalk-offset',({k:-14,q:-13,r:-8,b:0,n:8,p:13}[p.type])+'%');
         if(boardStyle==='classic')s.textContent=GLYPH[p.type]+VS;
         else{const img=document.createElement('img');img.src=PIECE_ART[boardStyle];img.alt='';img.draggable=false;img.onerror=()=>{if(boardStyle!=='classic')setBoardStyle('classic')};s.style.setProperty('--piece-col',PIECE_COL[p.type]);s.style.setProperty('--piece-row',p.color==='w'?'0%':'-100%');s.append(img)}
-        if(coachAnimating&&lastByCoach&&last&&last.to===sq){const a=boardPoint(last.from),z=boardPoint(last.to);s.style.setProperty('--coach-dx',a.x-z.x);s.style.setProperty('--coach-dy',a.y-z.y)}
+        if(coachAnimating&&byCoach&&boardLast&&boardLast.to===sq){const a=boardPoint(boardLast.from),z=boardPoint(boardLast.to);s.style.setProperty('--coach-dx',a.x-z.x);s.style.setProperty('--coach-dy',a.y-z.y)}
         b.append(s);
       }
       if(i===7){const c=document.createElement('span');c.className='co f';c.textContent=FILES[fi];b.append(c)}
@@ -797,33 +801,42 @@ function renderBoard(){
       el.append(b);
     }
   }
-  if(layoutPreference==='board'&&mode==='play'&&moveGrade){
-    const history=game.history({verbose:true}),student=[...history].reverse().find(m=>m.color===player);
+  if(!replay&&layoutPreference==='board'&&mode==='play'&&moveGrade){
+    const history=position.history({verbose:true}),student=[...history].reverse().find(m=>m.color===player);
     if(student&&moveGrade.moveLabel.includes(student.san)){const square=el.querySelector('[data-sq="'+student.to+'"]');if(square){const tag=document.createElement('span');tag.className='square-grade';tag.textContent=moveGrade.assessment;tag.style.background=GRADE_COLOR[moveGrade.assessment];square.append(tag)}}
   }
   renderMoveArrow();
 }
 function renderMoveArrow(){
   const svg=$('moveArrow');svg.textContent='';
-  if(!lastByCoach||!last)return;
+  if(replay||!lastByCoach||!last)return;
   const a=boardPoint(last.from),z=boardPoint(last.to),x1=a.x*100+50,y1=a.y*100+50,x2=z.x*100+50,y2=z.y*100+50;
   const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len,endX=x2-28*ux,endY=y2-28*uy;
   const line=document.createElementNS('http://www.w3.org/2000/svg','line');line.setAttribute('x1',x1);line.setAttribute('y1',y1);line.setAttribute('x2',endX);line.setAttribute('y2',endY);
   const leftX=endX-25*ux+13*uy,leftY=endY-25*uy-13*ux,rightX=endX-25*ux-13*uy,rightY=endY-25*uy+13*ux;
   const head=document.createElementNS('http://www.w3.org/2000/svg','polygon');head.setAttribute('points',endX+','+endY+' '+leftX+','+leftY+' '+rightX+','+rightY);svg.append(line,head);
 }
+function viewPastMove(ply){
+  if(busy||mode==='lesson')return;
+  const board=new Chess();if(!board.load_pgn(game.pgn()))return;
+  while(board.history().length>ply)board.undo();
+  const moves=board.history({verbose:true}),move=moves.at(-1);
+  replay={source:game,fen:game.fen(),board,ply,last:move?{from:move.from,to:move.to}:null,label:Math.ceil(ply/2)+(ply%2?'. ':'... ')+(move?.san||'')};
+  sel=null;render();$('sheet').querySelector('[aria-current="step"]')?.focus({preventScroll:true});
+}
+$('returnLiveBtn').onclick=()=>{replay=null;sel=null;render();$('sheet').querySelector('button:last-of-type')?.focus({preventScroll:true})};
 function renderSheet(){
   const el=$('sheet'); el.textContent='';
   const h=game.history();
   if(!h.length){const e=document.createElement('div');e.className='empty';e.textContent='No moves yet.';el.append(e);return}
   for(let i=0;i<h.length;i+=2){
     const n=document.createElement('div');n.className='n';n.textContent=(i/2+1)+'.';
-    const makeMove=(san,ply)=>{const d=document.createElement('div');d.className='sheet-move'+(ply===h.length?' latest':'')+(ply===h.length&&lastByCoach?' coach-reply':'');if(san)d.append(san);const grade=moveGrades.find(x=>x.ply===ply);if(grade){const bar=document.createElement('i');bar.className='sheet-grade';bar.style.setProperty('--sheet-grade',GRADE_COLOR[grade.assessment]);bar.title=grade.assessment;d.append(bar)}return d};
+    const makeMove=(san,ply)=>{const d=document.createElement(san?'button':'span');if(san){d.type='button';d.dataset.ply=ply;d.disabled=busy;d.setAttribute('aria-label','View position after '+Math.ceil(ply/2)+(ply%2?'. ':'... ')+san);if(replay?.ply===ply)d.setAttribute('aria-current','step');d.onclick=()=>viewPastMove(ply)}d.className='sheet-move'+(ply===h.length?' latest':'')+(ply===h.length&&lastByCoach?' coach-reply':'');if(san)d.append(san);const grade=moveGrades.find(x=>x.ply===ply);if(grade){const bar=document.createElement('i');bar.className='sheet-grade';bar.style.setProperty('--sheet-grade',GRADE_COLOR[grade.assessment]);bar.title=grade.assessment;d.append(bar)}return d};
     const a=makeMove(h[i],i+1);
     const b=makeMove(h[i+1]||'',i+2);
     el.append(n,a,b);
   }
-  el.scrollLeft=el.scrollWidth;
+  if(replay)el.querySelector('[aria-current="step"]')?.scrollIntoView({block:'nearest',inline:'nearest'});else el.scrollLeft=el.scrollWidth;
 }
 function statusText(){
   if(mode==='together'&&resigned)return playerName(game.turn())+' resigned. '+playerName(game.turn()==='w'?'b':'w')+' wins.';
@@ -868,8 +881,10 @@ function renderChrome(){
   applyTheme();
 }
 function render(){
+  if(replay&&(replay.source!==game||replay.fen!==game.fen()||mode==='lesson'))replay=null;
   renderBoard(); renderSheet();
-  $('statusText').textContent=statusText();
+  $('statusText').textContent=replay?'Viewing '+replay.label+' · coaching shows live game':statusText();
+  $('returnLiveBtn').hidden=!replay;
   $('status').classList.toggle('thinking',busy&&!coachAnimating);
   const notice=$('coachNotice');notice.hidden=!coachNotice;notice.textContent='';
   if(coachNotice){notice.append('Coach played ');const move=document.createElement('span');move.className='move';move.textContent=coachNotice+(lastCoach?' '+lastCoach.from+' → '+lastCoach.to:'');notice.append(move,' · your move');if(lastCoach&&lastCoach.why){notice.append(document.createElement('br'));const reason=document.createElement('span');reason.className='note';reason.textContent=lastCoach.why;notice.append(reason)}}
@@ -902,8 +917,11 @@ function render(){
   $('settingsTogetherBtn').hidden=mode!=='together';$('soloSettingsTitle').hidden=mode==='together';$('soloSettingsFields').hidden=mode==='together';
   const noCoaching=mode==='together'&&together.coaching==='off';
   document.querySelector('.prompt-chips').hidden=noCoaching;
-  $('hintBtn').hidden=noCoaching;$('reviewBtn').hidden=noCoaching;$('askForm').hidden=noCoaching;
+  $('undoBtn').hidden=!!replay;$('hintBtn').hidden=noCoaching||!!replay;$('reviewBtn').hidden=noCoaching||!!replay;$('askForm').hidden=noCoaching;
   if(mode==='together')$('reviewBtn').disabled=busy||(!resigned&&!game.game_over());
+  if(replay)for(const id of ['undoBtn','hintBtn','reviewBtn','askBtn','resignBtn','coachMoveBtn'])$(id).disabled=true;
+  else $('coachMoveBtn').disabled=false;
+  document.querySelectorAll('.prompt-chip').forEach(b=>b.disabled=!!replay||busy);
 }
 
 /* ---------- input ---------- */
@@ -912,7 +930,7 @@ $('board').addEventListener('dragstart',e=>{const p=e.target.closest('.sq');if(!
 $('board').addEventListener('dragover',e=>{if(sel)e.preventDefault()});
 $('board').addEventListener('drop',e=>{e.preventDefault();const b=e.target.closest('.sq');if(b)onSquare(b.dataset.sq)});
 function canInteract(){
-  if(profileConflict||profileLoading||busy||game.game_over()||(mode!=='lesson'&&resigned))return false;
+  if(replay||profileConflict||profileLoading||busy||game.game_over()||(mode!=='lesson'&&resigned))return false;
   if(mode==='play'&&game.turn()!==player)return false;
   if(mode==='lesson'&&LESSONS[lessonIdx].solvedNow)return false;
   return true;
@@ -1231,7 +1249,7 @@ $('reviewBtn').onclick=()=>{
 $('askForm').addEventListener('submit',e=>{
   e.preventDefault();
   if(mode==='together'&&together.coaching==='off')return;
-  const q=$('askInput').value.trim(); if(!q||busy)return;
+  const q=$('askInput').value.trim(); if(!q||busy||replay)return;
   $('askInput').value='';
   if(!game.game_over()&&!resigned){assistance.questions++;save()}
   addLog('you',{text:q});
