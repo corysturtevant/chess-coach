@@ -981,7 +981,7 @@ function errCopy(e){
   switch(e&&e.code){
     case 'rate_limited':return 'The coach is getting too many requests right now. Wait a minute and try again.';
     case 'session_expired':return 'Your Claude session expired. Sign in again to keep using the coach.';
-    case 'empty_response':return 'The AI coach returned no review text.';
+    case 'empty_response':return 'The AI coach couldn’t finish an answer. Please try again.';
     case 'upstream_error':case 'server_error':return 'The AI coach is temporarily unavailable.';
     case 'refused':return 'The coach couldn’t answer that. Try asking a different way.';
     default:return 'The coach didn’t answer. Try again.';

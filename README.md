@@ -164,7 +164,7 @@ Coach modes split work by purpose:
 | Thorough | Qwen 3.8 | Qwen 3.8 | Qwen 3.8 | Qwen 3.8 |
 | Deep review | Qwen 3.8 | Qwen 3.8 | GLM 5.3 | Qwen 3.8 |
 
-Deep Review deliberately keeps ordinary moves on Qwen 3.8 because Stockfish already supplies the chess calculation and GLM can take 20–30 seconds while reasoning. Game reviews use Qwen with a 60-second timeout and 4,096-token budget. GLM sometimes exhausts its allowance on reasoning without returning review text, so it is reserved for Deep-mode questions. Other GLM questions retain a 1,800-token budget and 60-second timeout. If an AI review fails or returns no text, the app shows a clearly labeled local game summary. Confirm configured model aliases against AkashML's current model catalog before deployment.
+Deep Review deliberately keeps ordinary moves on Qwen 3.8 because Stockfish already supplies the chess calculation and GLM can take 20–30 seconds while reasoning. Game reviews use Qwen with a 60-second timeout and 4,096-token budget. GLM sometimes exhausts its allowance on reasoning without returning review text, so it is reserved for Deep-mode questions. Deep-mode questions have a 4,096-token budget and 60-second timeout. If any prose request exhausts its token budget without an answer, the server retries once with the standard coach model and at least 4,096 tokens. The retry may add another request timeout to the wait. If an AI review fails or returns no text, the app shows a clearly labeled local game summary. Confirm configured model aliases against AkashML's current model catalog before deployment.
 
 ## Commands
 

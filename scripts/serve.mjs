@@ -57,29 +57,39 @@ async function coach(req, res) {
   const purpose = ['move', 'hint', 'review', 'question'].includes(body.purpose) ? body.purpose : 'question';
   const deepRequest = tier === 'deep' && purpose === 'question';
   const selectedModel = tier === 'quick' ? quickModel : deepRequest ? deepModel : model;
-  const maxTokens = purpose === 'review' ? 4096 : deepRequest ? 1800 : body.json ? (tier === 'quick' ? 600 : 900) : (tier === 'quick' ? 700 : 1100);
+  const maxTokens = purpose === 'review' ? 4096 : deepRequest ? 4096 : body.json ? (tier === 'quick' ? 600 : 900) : (tier === 'quick' ? 700 : 1100);
   activeCoachRequests++;
   try {
-    const upstream = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'authorization': `Bearer ${apiKey}`, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: selectedModel,
-        max_tokens: maxTokens,
-        temperature: body.json ? 0.1 : 0.35,
-        system: 'You are Chess Coach, a warm and accurate chess teacher. Follow the requested response format exactly. Never claim a move is legal unless it appears in the supplied legal-move list.',
-        messages: [{ role: 'user', content: body.prompt }]
-      }),
-      signal: AbortSignal.timeout(purpose === 'review' ? 60_000 : deepRequest ? 60_000 : 30_000)
-    });
-    if (!upstream.ok) {
-      console.error(`AkashML request failed with HTTP ${upstream.status}`);
-      const authFailed = upstream.status === 401 || upstream.status === 403;
-      const error = upstream.status === 429 ? 'rate_limited' : authFailed ? 'not_granted' : 'upstream_error';
-      return json(res, upstream.status === 429 ? 429 : authFailed ? 503 : 502, { error, detail: authFailed ? 'The AkashML credential was rejected.' : 'The AI coach is temporarily unavailable.' });
+    const requestAnswer = async (requestModel, tokenBudget) => {
+      const upstream = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'authorization': `Bearer ${apiKey}`, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model: requestModel,
+          max_tokens: tokenBudget,
+          temperature: body.json ? 0.1 : 0.35,
+          system: 'You are Chess Coach, a warm and accurate chess teacher. Follow the requested response format exactly. Never claim a move is legal unless it appears in the supplied legal-move list.',
+          messages: [{ role: 'user', content: body.prompt }]
+        }),
+        signal: AbortSignal.timeout(purpose === 'review' ? 60_000 : deepRequest ? 60_000 : 30_000)
+      });
+      if (!upstream.ok) {
+        console.error(`AkashML request failed with HTTP ${upstream.status}`);
+        const authFailed = upstream.status === 401 || upstream.status === 403;
+        const error = new Error('Upstream request failed');
+        error.status = upstream.status === 429 ? 429 : authFailed ? 503 : 502;
+        error.code = upstream.status === 429 ? 'rate_limited' : authFailed ? 'not_granted' : 'upstream_error';
+        throw error;
+      }
+      const data = await upstream.json();
+      const text = Array.isArray(data.content) ? data.content.filter(block => block && block.type === 'text').map(block => block.text || '').join('') : '';
+      return {data,text};
+    };
+    let {data,text} = await requestAnswer(selectedModel,maxTokens);
+    if(!body.json&&!text.trim()&&data.stop_reason==='max_tokens'){
+      console.error(`AkashML retrying empty answer: purpose=${purpose} tier=${tier} output_tokens=${Number(data.usage?.output_tokens)||0}`);
+      ({data,text}=await requestAnswer(model,Math.max(4096,maxTokens)));
     }
-    const data = await upstream.json();
-    const text = Array.isArray(data.content) ? data.content.filter(block => block && block.type === 'text').map(block => block.text || '').join('') : '';
     if (!text.trim()) {
       console.error(`AkashML empty response: purpose=${purpose} tier=${tier} stop=${data.stop_reason || 'unknown'} output_tokens=${Number(data.usage?.output_tokens) || 0}`);
       return json(res, 502, { error: 'empty_response', detail: 'The AI coach returned an empty response.' });
@@ -91,7 +101,7 @@ async function coach(req, res) {
     return json(res, 200, { text });
   } catch (error) {
     console.error(`AkashML request error: ${error && error.name ? error.name : 'unknown'}`);
-    return json(res, 502, { error: 'upstream_error', detail: 'The AI coach is temporarily unavailable.' });
+    return json(res, error.status || 502, { error: typeof error.code === 'string' ? error.code : 'upstream_error', detail: 'The AI coach is temporarily unavailable.' });
   } finally {
     activeCoachRequests--;
   }
