@@ -86,7 +86,9 @@ Players unselected to keep using browser-only storage. Play together remains a s
 
 ## Player profiles and saved games
 
-Use **Players** in the header to select **Cory**, **Oliver**, or add another player.
+Use **Players** in the header to open the right-side drawer and select **Cory**, **Oliver**,
+or add another player. Players and saved-game history use the same upper-right X close
+control as Settings; Escape or clicking outside also dismisses the drawer.
 Select the same player on another device connected to the same server to resume their games.
 Each profile stores its coach game, two-player game, lesson progress, game history, move
 ratings, and saved review responses. Choose registered players in Play together setup to

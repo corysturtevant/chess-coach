@@ -29,7 +29,7 @@ try{
  await a.locator('#profileBtn').click();await a.locator('#reloadProfile').click();await a.waitForFunction(()=>document.querySelector('#profileSync').textContent.startsWith('Latest saved game loaded'));assert.doesNotMatch(await a.locator('#sheet').innerText(),/e5/);await a.locator('#closeProfiles').click();
  await a.reload();await a.waitForFunction(()=>document.querySelector('#profileBtn').textContent.includes('Cory'));assert.match(await a.locator('#sheet').innerText(),/e4/);
  assert.equal(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
- await a.locator('#profileBtn').click();await a.locator('#profileHistory button').first().waitFor();await a.screenshot({path:'/tmp/chess-profiles-phone.png'});await a.locator('#closeProfiles').click();
+ await a.locator('#profileBtn').click();await a.locator('#profileHistory button').first().waitFor();await a.screenshot({path:'/tmp/chess-profiles-phone.png',animations:'disabled'});await a.locator('#closeProfiles').click();
  await a.route('**/api/profiles**',route=>route.abort());
  await a.locator('.sq[data-sq=e7]').click();await a.locator('.sq[data-sq=e5]').click();
  await a.waitForFunction(()=>document.querySelector('#profileBanner').textContent.includes('Offline'));

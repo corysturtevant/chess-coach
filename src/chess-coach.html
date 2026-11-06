@@ -326,6 +326,17 @@ body{font-size:16px;padding:0}.wrap{display:flex;padding:0;gap:0}.topbar{min-hei
 .coach-history .msg{padding:8px 0;border-bottom:1px solid var(--hairline)}
 .coach-history .turn-summary,.coach-history .turn-summary .body{white-space:normal;overflow:visible;text-overflow:clip}
 #log:not(:empty){border-top:1px solid var(--hairline);padding-top:16px}
+
+/* Profile and saved-game drawers share Settings' width, spacing and close control. */
+.profile-drawer{position:fixed;inset:0 0 auto auto;margin:0;width:min(460px,100%);max-width:100%;height:100dvh;max-height:100dvh;border:0;border-radius:0;padding:24px;background:var(--paper);box-shadow:var(--shadow-card);overflow:hidden}
+.profile-drawer[open]{display:flex;flex-direction:column;gap:22px;animation:profile-drawer-in .18s ease-out}
+.profile-drawer::backdrop{background:rgba(28,26,24,.32)}
+.profile-drawer .drawer-head{flex:none;align-items:center}.profile-drawer .drawer-head>div{min-width:0}.profile-drawer .drawer-head h2{font:560 32px/1.1 var(--f-display);margin:3px 0 0;overflow-wrap:anywhere}.profile-drawer .icon-btn{flex:none}
+.profile-drawer-content{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:env(safe-area-inset-bottom,0px)}
+.profile-drawer-content>:first-child{margin-top:0}
+body:has(.profile-drawer[open]){overflow:hidden}
+@keyframes profile-drawer-in{from{transform:translateX(100%)}to{transform:translateX(0)}}
+@media(prefers-reduced-motion:reduce){.profile-drawer[open]{animation:none}}
 </style>
 <div class="wrap">
   <header class="topbar">
@@ -513,8 +524,8 @@ body{font-size:16px;padding:0}.wrap{display:flex;padding:0;gap:0}.topbar{min-hei
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.js"></script>
-<dialog id="profileDialog" class="together-dialog" aria-labelledby="profilesTitle"><div class="row"><h2 id="profilesTitle">Players</h2><button class="btn" id="closeProfiles">Close</button></div><p class="note">Shared family profiles on this server. Choose the same player on another device to continue.</p><p id="profileSync" role="status">Choose a player to enable sync.</p><button class="btn" id="reloadProfile" hidden>Load latest saved game</button><div class="row" id="profileList"></div><label class="profile-import"><input type="checkbox" id="importProfileGame"> Import this device’s current games if the selected profile is empty</label><form id="addProfileForm"><label>Add a player<input id="newProfileName" maxlength="24" required placeholder="Player name"></label><button class="btn primary">Add player</button></form><h3>Your game history</h3><div id="profileHistory"></div></dialog>
-<dialog id="historyDialog" class="together-dialog" aria-labelledby="historyTitle"><h2 id="historyTitle">Saved game</h2><button class="btn" id="closeHistory">Close</button><h3>Saved review</h3><p id="historyReview" style="white-space:pre-wrap"></p><h3>Game moves (PGN)</h3><pre id="historyPgn" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></dialog>
+<dialog id="profileDialog" class="together-dialog profile-drawer" aria-labelledby="profilesTitle"><div class="drawer-head"><div><span class="eyebrow">Your chess</span><h2 id="profilesTitle">Players</h2></div><button class="icon-btn" id="closeProfiles" type="button" aria-label="Close players">×</button></div><div class="profile-drawer-content"><p class="note">Shared family profiles on this server. Choose the same player on another device to continue.</p><p id="profileSync" role="status">Choose a player to enable sync.</p><button class="btn" id="reloadProfile" hidden>Load latest saved game</button><div class="row" id="profileList"></div><label class="profile-import"><input type="checkbox" id="importProfileGame"> Import this device’s current games if the selected profile is empty</label><form id="addProfileForm"><label>Add a player<input id="newProfileName" maxlength="24" required placeholder="Player name"></label><button class="btn primary">Add player</button></form><h3>Your game history</h3><div id="profileHistory"></div></div></dialog>
+<dialog id="historyDialog" class="together-dialog profile-drawer" aria-labelledby="historyTitle"><div class="drawer-head"><div><span class="eyebrow">Game history</span><h2 id="historyTitle">Saved game</h2></div><button class="icon-btn" id="closeHistory" type="button" aria-label="Close game history">×</button></div><div class="profile-drawer-content"><h3>Saved review</h3><p id="historyReview" style="white-space:pre-wrap"></p><h3>Game moves (PGN)</h3><pre id="historyPgn" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></div></dialog>
 <dialog id="togetherSetup" class="together-dialog" aria-labelledby="togetherSetupTitle"><form id="togetherForm"><h2 id="togetherSetupTitle">A game together</h2><p>No clock, no rush. Both players use this board.</p><div class="together-names"><label>White<select id="whiteProfile" aria-label="White player profile"></select><input id="whiteName" maxlength="24" value="Cory" required></label><label>Black<select id="blackProfile" aria-label="Black player profile"></select><input id="blackName" maxlength="24" value="Oliver" required></label></div><label>Board orientation<select id="togetherOrientation"><option value="fixed">Stay fixed</option><option value="flip">Flip each turn</option></select></label><label>Coaching<select id="togetherCoaching"><option value="learn">Learn together</option><option value="off">Off</option></select></label><p class="note">Hints when you ask. A shared review after the game.</p><div class="row"><button class="btn" type="button" id="swapNames">Swap colors</button><button class="btn" type="button" id="cancelTogether">Cancel</button><button class="btn primary" type="submit">Start new game</button></div><p class="note">Starting replaces the current two-player game. Your coach game is kept separately.</p></form></dialog>
 <dialog id="togetherUndo" class="together-dialog" aria-labelledby="undoTitle"><h2 id="undoTitle">Take back a move?</h2><p id="undoQuestion"></p><div class="row"><button class="btn" id="declineUndo">Keep playing</button><button class="btn primary" id="approveUndo">Agree and undo</button></div></dialog>
 <script>
@@ -1506,6 +1517,12 @@ function renderProfileList(){
 function renderProfileHistory(history){
   const el=$('profileHistory');el.textContent='';if(!history.length){el.textContent='No saved games yet.';return}
   for(const g of history){const b=document.createElement('button');b.className='btn history-game';b.textContent=g.white+' vs '+g.black+' · '+g.status;b.onclick=async()=>{try{const full=await profileRequest('/'+activeProfile.id+'/games/'+encodeURIComponent(g.id));$('historyTitle').textContent=full.white+' vs '+full.black;$('historyPgn').textContent=full.snapshot.pgn;$('historyReview').textContent=(full.snapshot.logItems||[]).filter(i=>i.san==='Game review').map(i=>i.text).join('\n\n')||'No review saved for this game yet.';$('historyDialog').showModal()}catch(e){profileMessage('Could not load this saved game.')}};el.append(b)}
+}
+for(const id of ['profileDialog','historyDialog']){
+  const drawer=$(id);let startedOutside=false;
+  const outside=e=>{const r=drawer.getBoundingClientRect();return e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom};
+  drawer.addEventListener('pointerdown',e=>{startedOutside=e.target===drawer&&outside(e)});
+  drawer.addEventListener('click',e=>{if(startedOutside&&e.target===drawer&&outside(e))drawer.close();startedOutside=false});
 }
 $('profileBtn').onclick=openProfiles;$('closeProfiles').onclick=()=>$('profileDialog').close();$('closeHistory').onclick=()=>$('historyDialog').close();
 $('addProfileForm').onsubmit=async e=>{e.preventDefault();try{const p=await profileRequest('',{method:'POST',body:JSON.stringify({name:$('newProfileName').value})});profileList.push(p);$('newProfileName').value='';renderProfileList();profileMessage('Player added. Select their name to switch.')}catch(e){profileMessage(e.message)}};
